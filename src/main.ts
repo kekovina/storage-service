@@ -5,6 +5,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
 import SwaggerConfig from '@/config/swagger.config';
 import { ConfigService } from '@nestjs/config';
+import multipart from '@fastify/multipart';
 
 async function bootstrap() {
   const isProduction = process.env.NODE_ENV === 'production';
@@ -19,6 +20,8 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get('APP_PORT') as number;
+
+  await app.register(multipart);
 
   await app.listen(port || 3000, '0.0.0.0', (_, address) => {
     Logger.log(`Application is running on: ${address}`, 'Bootstrap');
