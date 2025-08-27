@@ -1,13 +1,13 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import { createWriteStream } from 'fs';
-import * as path from 'path';
 import { checkOrCreateCollectionExists } from '@/storage/libs/checkOrCreateCollectionExists';
 import { ERROR_CODES } from '@/consts';
+import fs from 'fs';
+import path from 'path';
 
 @Injectable()
 export class UploaderService {
-  async upload(folderPath: string, parts: AsyncIterableIterator<any>, allowedMimetypes: string[]) {
-    if (!(await checkOrCreateCollectionExists(folderPath))) {
+  async upload(targetPath: string, fileName: string, buffer: Buffer) {
+    if (!(await checkOrCreateCollectionExists(targetPath))) {
       throw new HttpException(
         {
           message: 'Could not create collection',
@@ -16,49 +16,10 @@ export class UploaderService {
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
-
-    const files: string[] = [];
-    let uploadedCount = 0;
-    let errorsCount = 0;
-    const errors: string[] = [];
-
     try {
-      for await (const part of parts) {
-        const { fieldname, mimetype } = part;
-        if (!allowedMimetypes.includes(mimetype)) {
-          errorsCount++;
-          errors.push(`Mimetype not allowed: ${mimetype}`);
-          continue;
-        }
-
-        const filePath = path.join(folderPath, fieldname);
-        await new Promise<void>((resolve, reject) => {
-          const stream = createWriteStream(filePath);
-          part.file.pipe(stream);
-
-          part.file.on('end', () => {
-            uploadedCount++;
-            files.push(filePath);
-            resolve();
-          });
-
-          part.file.on('error', (err) => {
-            errorsCount++;
-            errors.push(err.message);
-            reject(err);
-          });
-        });
-      }
-
-      return { message: 'OK', uploadedCount, errorsCount, errors, files };
-    } catch (e: any) {
-      throw new HttpException(
-        {
-          code: ERROR_CODES.FILE_WRITE_ERROR,
-          message: e.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      return fs.writeFileSync(path.join(targetPath, fileName), buffer);
+    } catch (e) {
+      return false;
     }
   }
 }

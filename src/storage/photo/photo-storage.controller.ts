@@ -7,15 +7,15 @@ import {
   UseGuards,
   Req,
   Res,
-  Body,
   UseFilters,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { PhotoStorageService } from './photo-storage.service';
 import { type FastifyRequest, type FastifyReply } from 'fastify';
 import { BearerAuthGuard } from '@/auth/bearer-auth-guard.guard';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { UploadPhotoStorageDto } from './dto/photo-storage.dto';
+import { UploadPhotoQueryDto, UploadPhotoStorageDto } from './dto/photo-storage.dto';
 import { HttpExceptionFilter } from '@/http-exception.filter';
 import { BaseErrorResponseDto } from '@/storage/types';
 
@@ -30,7 +30,7 @@ export class PhotoStorageController {
   constructor(private readonly photoStorageService: PhotoStorageService) {}
 
   @ApiOperation({ summary: 'Upload photo' })
-  @ApiBody({ description: 'Photo upload', type: UploadPhotoStorageDto })
+  @ApiBody({ type: UploadPhotoStorageDto })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -44,10 +44,10 @@ export class PhotoStorageController {
     @Req() req: FastifyRequest,
     @Param('collection') collection: string,
     @Res() res: FastifyReply,
-    @Body() body: UploadPhotoStorageDto
+    @Query() opts: UploadPhotoQueryDto
   ) {
     const parts = req.files();
-    const response = await this.photoStorageService.upload(collection, parts);
+    const response = await this.photoStorageService.upload(collection, parts, opts);
     if (response.message === 'OK') res.status(HttpStatus.CREATED).send(response);
   }
   @ApiOperation({ summary: 'Get list of collection`s files' })

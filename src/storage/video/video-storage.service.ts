@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AVAILABLE_VIDEO_MIMETYPES, VIDEO_FOLDER } from '@/storage/config';
+import { VIDEO_FOLDER } from '@/storage/config';
 import path from 'node:path';
 import { UploaderService } from '@/storage/uploader/upload.service';
 
@@ -8,7 +8,7 @@ export class VideoStorageService {
   constructor(private readonly uploader: UploaderService) {}
   async upload(collection: string, parts: any) {
     const collectionPath = path.join(VIDEO_FOLDER, collection);
-    return this.uploader.upload(collectionPath, parts, AVAILABLE_VIDEO_MIMETYPES);
+    // return this.uploader.upload(collectionPath, parts);
   }
 
   findAll() {

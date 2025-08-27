@@ -1,6 +1,8 @@
 import path from 'node:path';
 
-export const FOLDER_PATH = path.join(__dirname, '..', 'uploads');
+export const ROOT_PATH = process.cwd();
+
+export const FOLDER_PATH = path.join(ROOT_PATH, 'uploads');
 export const PHOTO_FOLDER = path.join(FOLDER_PATH, 'photo');
 export const VIDEO_FOLDER = path.join(FOLDER_PATH, 'video');
 export const PHOTO_PREVIEW_FOLDER = path.join(FOLDER_PATH, 'preview', 'photo');
