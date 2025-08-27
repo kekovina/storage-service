@@ -16,8 +16,8 @@ import { type FastifyRequest, type FastifyReply } from 'fastify';
 import { BearerAuthGuard } from '@/auth/bearer-auth-guard.guard';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UploadPhotoStorageDto } from './dto/photo-storage.dto';
-import { BaseErrorResponseDto } from './dto/response.dto';
 import { HttpExceptionFilter } from '@/http-exception.filter';
+import { BaseErrorResponseDto } from '@/storage/types';
 
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized.' })
 @ApiResponse({
