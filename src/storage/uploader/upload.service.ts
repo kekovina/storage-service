@@ -10,7 +10,6 @@ export class UploaderService {
     if (!(await checkOrCreateCollectionExists(folderPath))) {
       throw new HttpException(
         {
-          statusCode: 500,
           message: 'Could not create collection',
           code: ERROR_CODES.CREATE_COLLECTION_DIR_ERROR,
         },
@@ -57,7 +56,6 @@ export class UploaderService {
         {
           code: ERROR_CODES.FILE_WRITE_ERROR,
           message: e.message,
-          statusCode: 500,
         },
         HttpStatus.INTERNAL_SERVER_ERROR
       );

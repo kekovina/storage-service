@@ -1,78 +1,161 @@
-import { Controller, Get, Post, Param, Delete, UseGuards, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  Res,
+  Body,
+  UseFilters,
+  HttpStatus,
+} from '@nestjs/common';
 import { PhotoStorageService } from './photo-storage.service';
 import { type FastifyRequest, type FastifyReply } from 'fastify';
 import { BearerAuthGuard } from '@/auth/bearer-auth-guard.guard';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UploadPhotoStorageDto } from './dto/photo-storage.dto';
-import { ErrorResponseDto } from './dto/response.dto';
+import { BaseErrorResponseDto } from './dto/response.dto';
+import { HttpExceptionFilter } from '@/http-exception.filter';
 
+@ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized.' })
+@ApiResponse({
+  status: HttpStatus.INTERNAL_SERVER_ERROR,
+  description: 'Internal server error.',
+  type: BaseErrorResponseDto,
+})
 @Controller('storage/photo')
 export class PhotoStorageController {
   constructor(private readonly photoStorageService: PhotoStorageService) {}
 
-  @UseGuards(BearerAuthGuard)
+  @ApiOperation({ summary: 'Upload photo' })
   @ApiBody({ description: 'Photo upload', type: UploadPhotoStorageDto })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({
-    status: 201,
+    status: HttpStatus.CREATED,
     description: 'The photo/photos has/have been successfully uploaded.',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error.',
-    type: ErrorResponseDto,
-  })
+  @UseFilters(HttpExceptionFilter)
+  @ApiBearerAuth()
+  @UseGuards(BearerAuthGuard)
   @Post('/:collection')
   async create(
     @Req() req: FastifyRequest,
     @Param('collection') collection: string,
-    @Res() res: FastifyReply
+    @Res() res: FastifyReply,
+    @Body() body: UploadPhotoStorageDto
   ) {
-    try {
-      const parts = req.files();
-      const response = await this.photoStorageService.upload(collection, parts);
-      if (response.message === 'OK') res.status(201).send(response);
-    } catch (e) {
-      throw e;
-    }
+    const parts = req.files();
+    const response = await this.photoStorageService.upload(collection, parts);
+    if (response.message === 'OK') res.status(HttpStatus.CREATED).send(response);
   }
-
+  @ApiOperation({ summary: 'Get list of collection`s files' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'List of files',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Collection not found',
+  })
   @ApiBearerAuth()
   @UseGuards(BearerAuthGuard)
-  @Delete('/:collection/:filename')
-  remove(@Param('collection') collection: string, @Param('filename') filename: string) {
-    return this.photoStorageService.remove(collection, filename);
-  }
-
-  @ApiBearerAuth()
-  @UseGuards(BearerAuthGuard)
-  @Get('/drop/:collection')
-  dropCollection(@Param('collection') collection: string) {
-    return this.photoStorageService.dropCollection(collection);
-  }
-
-  @ApiBearerAuth()
-  @UseGuards(BearerAuthGuard)
+  @UseFilters(HttpExceptionFilter)
   @Get('/:collection')
   findAll(@Param('collection') collection: string) {
-    return this.photoStorageService.findAll(collection);
+    return this.photoStorageService.getCollectionFiles(collection);
   }
 
+  @ApiOperation({ summary: 'Get list of collections' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'List of collections',
+  })
   @ApiBearerAuth()
   @UseGuards(BearerAuthGuard)
+  @UseFilters(HttpExceptionFilter)
   @Get('/collections')
-  getAllCollections(@Param('collections') collections: string) {
-    return this.photoStorageService.getAllCollections(collections);
+  getAllCollections() {
+    return this.photoStorageService.getAllCollections();
   }
 
+  @ApiOperation({ summary: 'Get file' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'File',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'File not found',
+  })
+  @UseFilters(HttpExceptionFilter)
   @Get('/:collection/:filename')
-  getFile(@Param('collection') collection: string, @Param('filename') filename: string) {
-    return this.photoStorageService.getFile(collection, filename);
+  getFile(
+    @Res() reply: FastifyReply,
+    @Param('collection') collection: string,
+    @Param('filename') filename: string
+  ) {
+    const file = this.photoStorageService.getFile(collection, filename);
+    return reply
+      .header('cache-control', 'public, max-age=31536000')
+      .header('Content-Disposition', `attachment; filename="${file.filename}"`)
+      .send(file.stream);
   }
 
+  @ApiOperation({ summary: 'Get preview file' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'File',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'File not found',
+  })
+  @UseFilters(HttpExceptionFilter)
   @Get('/:collection/:filename/preview')
   getPreview(@Param('collection') collection: string, @Param('filename') filename: string) {
     return this.photoStorageService.getPreview(collection, filename);
+  }
+
+  //DELETE
+  @ApiOperation({ summary: 'Delete file' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'File deleted',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'File not found',
+  })
+  @ApiBearerAuth()
+  @UseFilters(HttpExceptionFilter)
+  @UseGuards(BearerAuthGuard)
+  @Delete('/:collection/:filename')
+  remove(
+    @Param('collection') collection: string,
+    @Res() res: FastifyReply,
+    @Param('filename') filename: string
+  ) {
+    if (this.photoStorageService.dropFile(collection, filename) === undefined)
+      return res.status(HttpStatus.NO_CONTENT);
+  }
+
+  @ApiOperation({ summary: 'Delete collection' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Collection deleted',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Collection not found',
+  })
+  @ApiBearerAuth()
+  @UseFilters(HttpExceptionFilter)
+  @UseGuards(BearerAuthGuard)
+  @Delete('/:collection')
+  dropCollection(@Param('collection') collection: string, @Res() res: FastifyReply) {
+    if (this.photoStorageService.dropCollection(collection) === undefined)
+      return res.status(HttpStatus.NO_CONTENT);
   }
 }
