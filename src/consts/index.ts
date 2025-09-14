@@ -8,3 +8,9 @@ export enum ERROR_CODES {
   COLLECTION_NOT_FOUND = 'COLLECTION_NOT_FOUND',
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
 }
+
+export enum CONTENT_TYPES {
+  PHOTO = 'photo',
+  VIDEO = 'video',
+  DEFAULT = 'default',
+}

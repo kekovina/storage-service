@@ -1,12 +1,32 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { checkOrCreateCollectionExists } from '@/storage/libs/checkOrCreateCollectionExists';
-import { ERROR_CODES } from '@/consts';
+import { CONTENT_TYPES, ERROR_CODES } from '@/consts';
 import fs from 'fs';
 import path from 'path';
+import { PhotoHandler } from './handlers/photo';
+import { VideoHandler } from './handlers/video';
+import { DefaultHandler } from './handlers/default';
 
 @Injectable()
 export class UploaderService {
-  async upload(targetPath: string, fileName: string, buffer: Buffer) {
+  async upload(contentType: CONTENT_TYPES, targetPath: string, parts: any) {
+    const handler = this.getHandler(contentType);
+    parts = await handler.process(parts);
+    await this.saveToStorage(targetPath, parts[0].filename, parts[0].data);
+  }
+
+  private getHandler(type: CONTENT_TYPES) {
+    switch (type) {
+      case CONTENT_TYPES.PHOTO:
+        return PhotoHandler;
+      case CONTENT_TYPES.VIDEO:
+        return VideoHandler;
+      default:
+        return DefaultHandler;
+    }
+  }
+
+  private async saveToStorage(targetPath: string, fileName: string, buffer: Buffer) {
     if (!(await checkOrCreateCollectionExists(targetPath))) {
       throw new HttpException(
         {
