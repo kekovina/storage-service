@@ -1,30 +1,76 @@
-import { FileHandler } from './types';
+import { MultipartFile } from '@fastify/multipart';
+import { FileHandler, FilePrepareStatusSuccess, PhotoHandlerOptions } from './types';
+import path from 'path';
+import { Injectable } from '@nestjs/common';
+import { ImageOptimizerService } from '@/image-optimizer/image-optimizer.service';
+import { ERROR_CODES } from '@/consts';
 
-export class PhotoHandler implements FileHandler {
-  async process(file: Buffer, options: PhotoHandlerOptions) {
-    let processedBuffer = file;
-    let previewBuffer: Buffer;
-    if (options?.optimize) {
-      processedBuffer = await this.imageOptimizerService.convertToWebp(file);
-      const parsedFile = path.parse(filename);
-      newFilename = `${parsedFile.name}.webp`;
-    }
-    if (options?.preview) {
-      previewBuffer = await this.imageOptimizerService.generatePreview(
-        processedBuffer,
-        options.previewSize
-      );
-      if (
-        (await this.uploader.upload(previewCollectionPath, newFilename, previewBuffer)) ===
-        undefined
-      ) {
-        uploadedCount++;
-        files.push(`${newFilename}/preview`);
-      } else {
-        errorsCount++;
-        errors.push({ [newFilename]: 'Could not upload preview' });
+@Injectable()
+export class PhotoPrepareHandler implements FileHandler {
+  constructor(private readonly imageOptimizerService: ImageOptimizerService) {}
+  async process(file: MultipartFile, options?: PhotoHandlerOptions) {
+    try {
+      const processedBuffer = await file.toBuffer();
+      const result = {
+        file: {
+          buffer: processedBuffer,
+          filename: file.filename,
+        },
+        preview: undefined,
+        isPrepared: true as const,
+      } as FilePrepareStatusSuccess;
+
+      if (options?.optimize) {
+        const { file, filename } = await this.optimize(processedBuffer, result.file.filename);
+        result.file = {
+          buffer: file,
+          filename,
+        };
       }
+
+      if (options?.preview) {
+        const { file, filename } = await this.createPreview(
+          processedBuffer,
+          result.file.filename,
+          options?.previewSize
+        );
+        result.preview = {
+          buffer: file,
+          filename: filename,
+        };
+      }
+
+      return result;
+    } catch (e) {
+      return {
+        isPrepared: false as const,
+        error: {
+          code: ERROR_CODES.FILE_PREPARE_ERROR,
+          message: e.message,
+        },
+      };
     }
-    return file;
+  }
+
+  private async optimize(file: Buffer, filename: string) {
+    const processedBuffer = await this.imageOptimizerService.convertToWebp(file);
+    const parsedFile = path.parse(filename);
+    const newFilename = `${parsedFile.name}.webp`;
+
+    return {
+      file: processedBuffer,
+      filename: newFilename,
+    };
+  }
+
+  private async createPreview(file: Buffer, filename: string, previewSize?: number) {
+    const processedBuffer = await this.imageOptimizerService.generatePreview(file, previewSize);
+    const parsedFile = path.parse(filename);
+    const newFilename = `${parsedFile.name}.webp`;
+
+    return {
+      file: processedBuffer,
+      filename: newFilename,
+    };
   }
 }

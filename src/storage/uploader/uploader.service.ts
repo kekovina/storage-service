@@ -3,26 +3,36 @@ import { checkOrCreateCollectionExists } from '@/storage/libs/checkOrCreateColle
 import { CONTENT_TYPES, ERROR_CODES } from '@/consts';
 import fs from 'fs';
 import path from 'path';
-import { PhotoHandler } from './handlers/photo';
-import { VideoHandler } from './handlers/video';
-import { DefaultHandler } from './handlers/default';
+import { PhotoPrepareHandler } from './handlers/photo';
+import { VideoPrepareHandler } from './handlers/video';
+import { DefaultPrepareHandler } from './handlers/default';
+import { MultipartFile } from '@fastify/multipart';
+import { FileHandler } from './handlers/types';
 
 @Injectable()
 export class UploaderService {
-  async upload(contentType: CONTENT_TYPES, targetPath: string, parts: any) {
+  constructor() {}
+  async upload(contentType: CONTENT_TYPES, targetPath: string, parts: MultipartFile) {
     const handler = this.getHandler(contentType);
-    parts = await handler.process(parts);
-    await this.saveToStorage(targetPath, parts[0].filename, parts[0].data);
+    const result = await handler.process(parts);
+    if (result.isPrepared) {
+      await this.saveToStorage(targetPath, result.file.filename, result.file.buffer);
+      if (result.preview) {
+        await this.saveToStorage(targetPath, result.preview.filename, result.preview.buffer);
+      }
+      return true;
+    }
+    return result;
   }
 
-  private getHandler(type: CONTENT_TYPES) {
+  private getHandler(type: CONTENT_TYPES): FileHandler {
     switch (type) {
       case CONTENT_TYPES.PHOTO:
-        return PhotoHandler;
+        return new PhotoPrepareHandler();
       case CONTENT_TYPES.VIDEO:
-        return VideoHandler;
+        return new VideoPrepareHandler();
       default:
-        return DefaultHandler;
+        return new DefaultPrepareHandler();
     }
   }
 

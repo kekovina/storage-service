@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import path from 'node:path';
 import fs, { createReadStream } from 'node:fs';
 import {
-  AVAILABLE_PHOTO_MIMETYPES,
+  AVAILABLE_MIMETYPES,
   DEFAULT_FOLDER,
   DEFAULT_PREVIEW_FOLDER,
   PHOTO_FOLDER,
@@ -10,77 +10,43 @@ import {
   VIDEO_FOLDER,
   VIDEO_PREVIEW_FOLDER,
 } from '@/storage/config';
-import { UploaderService } from '@/storage/uploader/upload.service';
+import { UploaderService } from '@/storage/uploader/uploader.service';
 import { getDirectories } from '@/storage/libs/getDirictories';
 import { getFiles } from '@/storage/libs/getFiles';
 import { CONTENT_TYPES, ERROR_CODES } from '@/consts';
-import { UploadPhotoQueryDto } from './dto/photo-storage.dto';
 import { ImageOptimizerService } from '@/image-optimizer/image-optimizer.service';
 import { MultipartFile } from '@fastify/multipart';
+import { parseMIMEToContentType } from '@/libs/parseMIMEToContentType';
 
 @Injectable()
-export class CollectionManagerService {
+export class StorageService {
   private readonly contentType: CONTENT_TYPES = CONTENT_TYPES.DEFAULT;
 
   constructor(
     private readonly uploader: UploaderService,
     private readonly imageOptimizerService: ImageOptimizerService
   ) {}
-  async upload(
-    collection: string,
-    parts: AsyncIterableIterator<MultipartFile>,
-    opts?: UploadPhotoQueryDto
-  ) {
+  async upload(collection: string, parts: AsyncIterableIterator<MultipartFile>) {
     const collectionPath = path.join(this.getFolder(), collection);
     const previewCollectionPath = path.join(this.getPreviewFolder(), collection);
 
     const files: string[] = [];
-    let uploadedCount = 0;
+    const uploadedCount = 0;
     let errorsCount = 0;
     const errors: Array<Record<string, string>> = [];
 
     for await (const part of parts) {
       const { mimetype, filename } = part;
-      let newFilename = filename;
-      if (!AVAILABLE_PHOTO_MIMETYPES.includes(mimetype)) {
+      const newFilename = filename;
+      if (!AVAILABLE_MIMETYPES.includes(mimetype)) {
         errorsCount++;
         errors.push({ [filename]: `Mimetype not allowed: ${mimetype}` });
         continue;
       }
 
-      const buffer = await part.toBuffer();
-      let processedBuffer = buffer;
-      let previewBuffer: Buffer;
-      if (opts?.optimize) {
-        processedBuffer = await this.imageOptimizerService.convertToWebp(buffer);
-        const parsedFile = path.parse(filename);
-        newFilename = `${parsedFile.name}.webp`;
-      }
-      if (opts?.preview) {
-        previewBuffer = await this.imageOptimizerService.generatePreview(
-          processedBuffer,
-          opts.previewSize
-        );
-        if (
-          (await this.uploader.upload(previewCollectionPath, newFilename, previewBuffer)) ===
-          undefined
-        ) {
-          uploadedCount++;
-          files.push(`${newFilename}/preview`);
-        } else {
-          errorsCount++;
-          errors.push({ [newFilename]: 'Could not upload preview' });
-        }
-      }
-      if (
-        (await this.uploader.upload(collectionPath, newFilename, processedBuffer)) === undefined
-      ) {
-        uploadedCount++;
-        files.push(newFilename);
-      } else {
-        errorsCount++;
-        errors.push({ [newFilename]: 'Could not upload file' });
-      }
+      const contentType = parseMIMEToContentType(mimetype);
+
+      const handler = this.uploader.upload(contentType, collectionPath, part);
     }
 
     return {

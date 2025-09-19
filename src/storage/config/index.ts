@@ -19,3 +19,10 @@ export const AVAILABLE_PHOTO_MIMETYPES = [
 ];
 
 export const AVAILABLE_VIDEO_MIMETYPES = ['video/mp4', 'video/webm', 'video/ogg'];
+export const AVAILABLE_APPLICATION_MIMETYPES = ['application/pdf'];
+
+export const AVAILABLE_MIMETYPES = [
+  ...AVAILABLE_PHOTO_MIMETYPES,
+  ...AVAILABLE_VIDEO_MIMETYPES,
+  ...AVAILABLE_APPLICATION_MIMETYPES,
+];

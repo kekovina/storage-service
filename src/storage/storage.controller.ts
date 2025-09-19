@@ -1,23 +1,23 @@
 import {
   Controller,
-  Get,
-  Post,
-  Param,
   Delete,
-  UseGuards,
+  Get,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
   Req,
   Res,
   UseFilters,
-  HttpStatus,
-  Query,
+  UseGuards,
 } from '@nestjs/common';
-import { PhotoStorageService } from './photo-storage.service';
-import { type FastifyRequest, type FastifyReply } from 'fastify';
-import { BearerAuthGuard } from '@/auth/bearer-auth-guard.guard';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { UploadPhotoQueryDto, UploadPhotoStorageDto } from './dto/photo-storage.dto';
+import { BaseErrorResponseDto } from './types';
+import { BearerAuthGuard } from '@/auth/bearer-auth-guard.guard';
 import { HttpExceptionFilter } from '@/http-exception.filter';
-import { BaseErrorResponseDto } from '@/storage/types';
+import { UploadPhotoStorageDto, UploadPhotoQueryDto } from './dto/photo-storage.dto';
+import { type FastifyRequest, type FastifyReply } from 'fastify';
+import { StorageService } from './storage.service';
 
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized.' })
 @ApiResponse({
@@ -25,9 +25,9 @@ import { BaseErrorResponseDto } from '@/storage/types';
   description: 'Internal server error.',
   type: BaseErrorResponseDto,
 })
-@Controller('storage/photo')
-export class PhotoStorageController {
-  constructor(private readonly photoStorageService: PhotoStorageService) {}
+@Controller('storage')
+export class StorageController {
+  constructor(private readonly storageService: StorageService) {}
 
   @ApiOperation({ summary: 'Upload photo' })
   @ApiBody({ type: UploadPhotoStorageDto })
@@ -47,8 +47,6 @@ export class PhotoStorageController {
     @Query() opts: UploadPhotoQueryDto
   ) {
     const parts = req.files();
-    const response = await this.photoStorageService.upload(collection, parts, opts);
-    if (response.message === 'OK') res.status(HttpStatus.CREATED).send(response);
   }
   @ApiOperation({ summary: 'Get list of collection`s files' })
   @ApiResponse({
@@ -64,7 +62,7 @@ export class PhotoStorageController {
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection')
   findAll(@Param('collection') collection: string) {
-    return this.photoStorageService.getCollectionFiles(collection);
+    return this.storageService.getCollectionFiles(collection);
   }
 
   @ApiOperation({ summary: 'Get list of collections' })
@@ -77,7 +75,7 @@ export class PhotoStorageController {
   @UseFilters(HttpExceptionFilter)
   @Get('/collections')
   getAllCollections() {
-    return this.photoStorageService.getAllCollections();
+    return this.storageService.getAllCollections();
   }
 
   @ApiOperation({ summary: 'Get file' })
@@ -96,7 +94,7 @@ export class PhotoStorageController {
     @Param('collection') collection: string,
     @Param('filename') filename: string
   ) {
-    const file = this.photoStorageService.getFile(collection, filename);
+    const file = this.storageService.getFile(collection, filename);
     return reply
       .header('cache-control', 'public, max-age=31536000')
       .header('Content-Disposition', `attachment; filename="${file.filename}"`)
@@ -115,7 +113,7 @@ export class PhotoStorageController {
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection/:filename/preview')
   getPreview(@Param('collection') collection: string, @Param('filename') filename: string) {
-    return this.photoStorageService.getPreview(collection, filename);
+    return this.storageService.getPreview(collection, filename);
   }
 
   //DELETE
@@ -137,7 +135,7 @@ export class PhotoStorageController {
     @Res() res: FastifyReply,
     @Param('filename') filename: string
   ) {
-    if (this.photoStorageService.dropFile(collection, filename) === undefined)
+    if (this.storageService.dropFile(collection, filename) === undefined)
       return res.status(HttpStatus.NO_CONTENT);
   }
 
@@ -155,7 +153,7 @@ export class PhotoStorageController {
   @UseGuards(BearerAuthGuard)
   @Delete('/:collection')
   dropCollection(@Param('collection') collection: string, @Res() res: FastifyReply) {
-    if (this.photoStorageService.dropCollection(collection) === undefined)
+    if (this.storageService.dropCollection(collection) === undefined)
       return res.status(HttpStatus.NO_CONTENT);
   }
 }
