@@ -15,11 +15,21 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '
 import { BaseErrorResponseDto } from './types';
 import { BearerAuthGuard } from '@/auth/bearer-auth-guard.guard';
 import { HttpExceptionFilter } from '@/http-exception.filter';
-import { UploadPhotoStorageDto, UploadPhotoQueryDto } from './dto/photo-storage.dto';
+import { UploadPhotoStorageDto, UploadFileOptionsDto } from './dto/request.dto';
 import { type FastifyRequest, type FastifyReply } from 'fastify';
 import { StorageService } from './storage.service';
+import {
+  CollectionFilesListResponseDto,
+  CollectionsListResponseDto,
+  SuccessResponseDto,
+  UploadFilesResponseDto,
+} from './dto/response.dto';
 
-@ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized.' })
+@ApiResponse({
+  status: HttpStatus.UNAUTHORIZED,
+  description: 'Unauthorized.',
+  type: BaseErrorResponseDto,
+})
 @ApiResponse({
   status: HttpStatus.INTERNAL_SERVER_ERROR,
   description: 'Internal server error.',
@@ -35,6 +45,12 @@ export class StorageController {
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'The photo/photos has/have been successfully uploaded.',
+    type: UploadFilesResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'No one photo has/have been uploaded.',
+    type: UploadFilesResponseDto,
   })
   @UseFilters(HttpExceptionFilter)
   @ApiBearerAuth()
@@ -44,38 +60,50 @@ export class StorageController {
     @Req() req: FastifyRequest,
     @Param('collection') collection: string,
     @Res() res: FastifyReply,
-    @Query() opts: UploadPhotoQueryDto
+    @Query() opts: UploadFileOptionsDto
   ) {
     const parts = req.files();
+    const result = await this.storageService.upload(collection, parts, opts);
+    const responseStatus = result.uploadedCount > 0 ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+    return res.status(responseStatus).send(result);
   }
+
   @ApiOperation({ summary: 'Get list of collection`s files' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'List of files',
+    type: CollectionFilesListResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Collection not found',
+    type: BaseErrorResponseDto,
   })
   @ApiBearerAuth()
   @UseGuards(BearerAuthGuard)
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection')
-  findAll(@Param('collection') collection: string) {
-    return this.storageService.getCollectionFiles(collection);
+  async findAll(@Param('collection') collection: string) {
+    return {
+      collectionName: collection,
+      files: await this.storageService.getCollectionFiles(collection),
+    };
   }
 
   @ApiOperation({ summary: 'Get list of collections' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'List of collections',
+    type: CollectionsListResponseDto,
   })
   @ApiBearerAuth()
   @UseGuards(BearerAuthGuard)
   @UseFilters(HttpExceptionFilter)
   @Get('/collections')
-  getAllCollections() {
-    return this.storageService.getAllCollections();
+  async getAllCollections() {
+    return {
+      collections: await this.storageService.getAllCollections(),
+    };
   }
 
   @ApiOperation({ summary: 'Get file' })
@@ -86,6 +114,7 @@ export class StorageController {
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'File not found',
+    type: BaseErrorResponseDto,
   })
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection/:filename')
@@ -109,9 +138,10 @@ export class StorageController {
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'File not found',
+    type: BaseErrorResponseDto,
   })
   @UseFilters(HttpExceptionFilter)
-  @Get('/:collection/:filename/preview')
+  @Get('/:collection/preview/:filename')
   getPreview(@Param('collection') collection: string, @Param('filename') filename: string) {
     return this.storageService.getPreview(collection, filename);
   }
@@ -121,10 +151,12 @@ export class StorageController {
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
     description: 'File deleted',
+    type: SuccessResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'File not found',
+    type: BaseErrorResponseDto,
   })
   @ApiBearerAuth()
   @UseFilters(HttpExceptionFilter)
@@ -135,25 +167,27 @@ export class StorageController {
     @Res() res: FastifyReply,
     @Param('filename') filename: string
   ) {
-    if (this.storageService.dropFile(collection, filename) === undefined)
-      return res.status(HttpStatus.NO_CONTENT);
+    this.storageService.dropFile(collection, filename);
+    return res.status(HttpStatus.NO_CONTENT).send({ status: true });
   }
 
   @ApiOperation({ summary: 'Delete collection' })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
     description: 'Collection deleted',
+    type: SuccessResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Collection not found',
+    type: BaseErrorResponseDto,
   })
   @ApiBearerAuth()
   @UseFilters(HttpExceptionFilter)
   @UseGuards(BearerAuthGuard)
   @Delete('/:collection')
   dropCollection(@Param('collection') collection: string, @Res() res: FastifyReply) {
-    if (this.storageService.dropCollection(collection) === undefined)
-      return res.status(HttpStatus.NO_CONTENT);
+    this.storageService.dropCollection(collection);
+    return res.status(HttpStatus.NO_CONTENT).send({ status: true });
   }
 }

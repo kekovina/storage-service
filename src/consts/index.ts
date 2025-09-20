@@ -15,3 +15,15 @@ export enum CONTENT_TYPES {
   VIDEO = 'video',
   DEFAULT = 'default',
 }
+
+export const supportedMimeTypes = [
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml',
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
+];

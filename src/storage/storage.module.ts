@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { UploaderService } from './uploader/uploader.service';
-import { ImageOptimizerModule } from '@/image-optimizer/image-optimizer.module';
+import { UploaderModule } from './uploader/uploader.module';
+import { StorageController } from './storage.controller';
+import { StorageService } from './storage.service';
 
 @Module({
-  imports: [ImageOptimizerModule],
-  providers: [UploaderService],
+  imports: [UploaderModule],
+  controllers: [StorageController],
+  providers: [StorageService],
 })
 export class StorageModule {}

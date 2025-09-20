@@ -2,7 +2,7 @@ import { MultipartFile } from '@fastify/multipart';
 import { FileHandler, FilePrepareStatusSuccess, PhotoHandlerOptions } from './types';
 import path from 'path';
 import { Injectable } from '@nestjs/common';
-import { ImageOptimizerService } from '@/image-optimizer/image-optimizer.service';
+import { ImageOptimizerService } from '@/storage/image-optimizer/image-optimizer.service';
 import { ERROR_CODES } from '@/consts';
 
 @Injectable()

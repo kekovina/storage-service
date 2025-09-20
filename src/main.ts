@@ -6,10 +6,23 @@ import { SwaggerModule } from '@nestjs/swagger';
 import SwaggerConfig from '@/config/swagger.config';
 import { ConfigService } from '@nestjs/config';
 import multipart from '@fastify/multipart';
+import { supportedMimeTypes } from './consts';
 
 async function bootstrap() {
   const isProduction = process.env.NODE_ENV === 'production';
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  const configService = app.get(ConfigService);
+  const mimeTypes =
+    configService
+      .get('ACCEPTED_MIME_TYPES')
+      ?.split(',')
+      .map((mimeType) => mimeType.trim()) ?? [];
+
+  const invalid = mimeTypes.filter((mime) => !supportedMimeTypes.includes(mime));
+
+  if (invalid.length > 0) {
+    throw new Error(`Found unsupported MIME: ${invalid.join(', ')}`);
+  }
 
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
@@ -17,8 +30,6 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, SwaggerConfig);
     SwaggerModule.setup('api', app, document);
   }
-
-  const configService = app.get(ConfigService);
   const port = configService.get('APP_PORT') as number;
 
   await app.register(multipart);

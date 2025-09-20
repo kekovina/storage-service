@@ -1,43 +1,32 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import path from 'node:path';
 import fs, { createReadStream } from 'node:fs';
-import {
-  AVAILABLE_MIMETYPES,
-  DEFAULT_FOLDER,
-  DEFAULT_PREVIEW_FOLDER,
-  PHOTO_FOLDER,
-  PHOTO_PREVIEW_FOLDER,
-  VIDEO_FOLDER,
-  VIDEO_PREVIEW_FOLDER,
-} from '@/storage/config';
+import { AVAILABLE_MIMETYPES, FOLDER_PATH } from '@/storage/config';
 import { UploaderService } from '@/storage/uploader/uploader.service';
 import { getDirectories } from '@/storage/libs/getDirictories';
 import { getFiles } from '@/storage/libs/getFiles';
-import { CONTENT_TYPES, ERROR_CODES } from '@/consts';
-import { ImageOptimizerService } from '@/image-optimizer/image-optimizer.service';
+import { ERROR_CODES } from '@/consts';
 import { MultipartFile } from '@fastify/multipart';
 import { parseMIMEToContentType } from '@/libs/parseMIMEToContentType';
+import { UploadFileOptionsDto } from './dto/request.dto';
 
 @Injectable()
 export class StorageService {
-  private readonly contentType: CONTENT_TYPES = CONTENT_TYPES.DEFAULT;
-
-  constructor(
-    private readonly uploader: UploaderService,
-    private readonly imageOptimizerService: ImageOptimizerService
-  ) {}
-  async upload(collection: string, parts: AsyncIterableIterator<MultipartFile>) {
-    const collectionPath = path.join(this.getFolder(), collection);
-    const previewCollectionPath = path.join(this.getPreviewFolder(), collection);
-
+  constructor(private readonly uploader: UploaderService) {}
+  async upload(
+    collection: string,
+    parts: AsyncIterableIterator<MultipartFile>,
+    options?: UploadFileOptionsDto
+  ) {
     const files: string[] = [];
-    const uploadedCount = 0;
+    let uploadedCount = 0;
     let errorsCount = 0;
     const errors: Array<Record<string, string>> = [];
 
+    const collectionPath = path.join(FOLDER_PATH, collection);
+
     for await (const part of parts) {
       const { mimetype, filename } = part;
-      const newFilename = filename;
       if (!AVAILABLE_MIMETYPES.includes(mimetype)) {
         errorsCount++;
         errors.push({ [filename]: `Mimetype not allowed: ${mimetype}` });
@@ -45,12 +34,20 @@ export class StorageService {
       }
 
       const contentType = parseMIMEToContentType(mimetype);
+      const optionsByContentType = options?.[contentType];
 
-      const handler = this.uploader.upload(contentType, collectionPath, part);
+      try {
+        await this.uploader.upload(contentType, collectionPath, part, optionsByContentType);
+        uploadedCount++;
+        files.push(filename);
+      } catch (e) {
+        errorsCount++;
+        errors.push({ [filename]: e.message });
+      }
     }
 
     return {
-      message: 'OK',
+      status: uploadedCount > 0,
       uploadedCount,
       errorsCount,
       files,
@@ -59,7 +56,7 @@ export class StorageService {
   }
 
   getCollectionFiles(collection: string) {
-    if (!fs.existsSync(path.join(this.getFolder(), collection)))
+    if (!fs.existsSync(path.join(FOLDER_PATH, collection)))
       throw new HttpException(
         {
           code: ERROR_CODES.COLLECTION_NOT_FOUND,
@@ -68,7 +65,7 @@ export class StorageService {
         HttpStatus.NOT_FOUND
       );
     try {
-      return getFiles(path.join(this.getFolder(), collection));
+      return getFiles(path.join(FOLDER_PATH, collection));
     } catch (e) {
       throw new HttpException(
         {
@@ -81,7 +78,7 @@ export class StorageService {
   }
 
   getFile(collection: string, filename: string) {
-    if (!fs.existsSync(path.join(this.getFolder(), collection, filename)))
+    if (!fs.existsSync(path.join(FOLDER_PATH, collection, filename)))
       throw new HttpException(
         {
           code: ERROR_CODES.FILE_NOT_FOUND,
@@ -90,7 +87,7 @@ export class StorageService {
         HttpStatus.NOT_FOUND
       );
     try {
-      const filePath = path.join(this.getFolder(), collection, filename);
+      const filePath = path.join(FOLDER_PATH, collection, filename);
       const stream = createReadStream(filePath);
 
       return { stream, filename };
@@ -106,7 +103,7 @@ export class StorageService {
   }
 
   getPreview(collection: string, filename: string) {
-    if (!fs.existsSync(path.join(this.getPreviewFolder(), collection, filename)))
+    if (!fs.existsSync(path.join(FOLDER_PATH, collection, 'preview', filename)))
       throw new HttpException(
         {
           code: ERROR_CODES.FILE_NOT_FOUND,
@@ -115,7 +112,7 @@ export class StorageService {
         HttpStatus.NOT_FOUND
       );
     try {
-      const filePath = path.join(this.getPreviewFolder(), collection, filename);
+      const filePath = path.join(FOLDER_PATH, collection, 'preview', filename);
       const stream = createReadStream(filePath);
 
       return { stream, filename };
@@ -131,7 +128,7 @@ export class StorageService {
   }
 
   dropFile(collection: string, filename: string) {
-    if (!fs.existsSync(path.join(this.getFolder(), collection, filename)))
+    if (!fs.existsSync(path.join(FOLDER_PATH, collection, filename)))
       throw new HttpException(
         {
           code: ERROR_CODES.FILE_NOT_FOUND,
@@ -140,7 +137,7 @@ export class StorageService {
         HttpStatus.NOT_FOUND
       );
     try {
-      return fs.unlinkSync(path.join(this.getFolder(), collection, filename));
+      return fs.unlinkSync(path.join(FOLDER_PATH, collection, filename));
     } catch (e) {
       throw new HttpException(
         {
@@ -153,7 +150,7 @@ export class StorageService {
   }
 
   dropCollection(collection: string) {
-    if (!fs.existsSync(path.join(this.getFolder(), collection)))
+    if (!fs.existsSync(path.join(FOLDER_PATH, collection)))
       throw new HttpException(
         {
           code: ERROR_CODES.COLLECTION_NOT_FOUND,
@@ -162,7 +159,7 @@ export class StorageService {
         HttpStatus.NOT_FOUND
       );
     try {
-      return fs.unlinkSync(path.join(this.getFolder(), collection));
+      return fs.unlinkSync(path.join(FOLDER_PATH, collection));
     } catch (e) {
       throw new HttpException(
         {
@@ -176,7 +173,7 @@ export class StorageService {
 
   getAllCollections() {
     try {
-      return getDirectories(this.getFolder());
+      return getDirectories(FOLDER_PATH);
     } catch (e) {
       throw new HttpException(
         {
@@ -185,28 +182,6 @@ export class StorageService {
         },
         HttpStatus.INTERNAL_SERVER_ERROR
       );
-    }
-  }
-
-  private getFolder() {
-    switch (this.contentType) {
-      case CONTENT_TYPES.PHOTO:
-        return PHOTO_FOLDER;
-      case CONTENT_TYPES.VIDEO:
-        return VIDEO_FOLDER;
-      default:
-        return DEFAULT_FOLDER;
-    }
-  }
-
-  private getPreviewFolder() {
-    switch (this.contentType) {
-      case CONTENT_TYPES.PHOTO:
-        return PHOTO_PREVIEW_FOLDER;
-      case CONTENT_TYPES.VIDEO:
-        return VIDEO_PREVIEW_FOLDER;
-      default:
-        return DEFAULT_PREVIEW_FOLDER;
     }
   }
 }

@@ -7,14 +7,23 @@ import { PhotoPrepareHandler } from './handlers/photo';
 import { VideoPrepareHandler } from './handlers/video';
 import { DefaultPrepareHandler } from './handlers/default';
 import { MultipartFile } from '@fastify/multipart';
-import { FileHandler } from './handlers/types';
+import { FileHandler, FilePrepareOptions } from './handlers/types';
 
 @Injectable()
 export class UploaderService {
-  constructor() {}
-  async upload(contentType: CONTENT_TYPES, targetPath: string, parts: MultipartFile) {
+  constructor(
+    private readonly photoPrepareHandler: PhotoPrepareHandler,
+    private readonly videoPrepareHandler: VideoPrepareHandler,
+    private readonly defaultPrepareHandler: DefaultPrepareHandler
+  ) {}
+  async upload(
+    contentType: CONTENT_TYPES,
+    targetPath: string,
+    parts: MultipartFile,
+    options?: FilePrepareOptions
+  ) {
     const handler = this.getHandler(contentType);
-    const result = await handler.process(parts);
+    const result = await handler.process(parts, options);
     if (result.isPrepared) {
       await this.saveToStorage(targetPath, result.file.filename, result.file.buffer);
       if (result.preview) {
@@ -22,17 +31,17 @@ export class UploaderService {
       }
       return true;
     }
-    return result;
+    throw new Error(result.error.message);
   }
 
   private getHandler(type: CONTENT_TYPES): FileHandler {
     switch (type) {
       case CONTENT_TYPES.PHOTO:
-        return new PhotoPrepareHandler();
+        return this.photoPrepareHandler;
       case CONTENT_TYPES.VIDEO:
-        return new VideoPrepareHandler();
+        return this.videoPrepareHandler;
       default:
-        return new DefaultPrepareHandler();
+        return this.defaultPrepareHandler;
     }
   }
 

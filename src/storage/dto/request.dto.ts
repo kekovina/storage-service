@@ -1,6 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNumber, IsOptional, Max, Min, ValidateIf } from 'class-validator';
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  Max,
+  Min,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 
 export class UploadPhotoStorageDto {
   @ApiProperty({
@@ -11,8 +19,7 @@ export class UploadPhotoStorageDto {
   })
   files: File[];
 }
-
-export class UploadPhotoQueryDto {
+export class UploadPhotoOptionsDto {
   @Type(() => Boolean)
   @IsOptional()
   @IsBoolean()
@@ -40,4 +47,25 @@ export class UploadPhotoQueryDto {
     maximum: 99,
   })
   previewSize?: number;
+}
+
+export class UploadVideoOptionsDto {}
+
+export class UploadDefaultOptionsDto {}
+
+export class UploadFileOptionsDto {
+  @ValidateNested()
+  @Type(() => UploadPhotoOptionsDto)
+  @IsOptional()
+  photo?: UploadPhotoOptionsDto;
+
+  @ValidateNested()
+  @Type(() => UploadVideoOptionsDto)
+  @IsOptional()
+  video?: UploadVideoOptionsDto;
+
+  @ValidateNested()
+  @Type(() => UploadDefaultOptionsDto)
+  @IsOptional()
+  default?: UploadDefaultOptionsDto;
 }

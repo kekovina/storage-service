@@ -28,7 +28,9 @@ export type FilePrepareStatusSuccess = {
 
 export type FilePrepareStatus = FilePrepareStatusFailed | FilePrepareStatusSuccess;
 
+export type FilePrepareOptions = PhotoHandlerOptions;
+
 export interface FileHandler {
   process(file: MultipartFile): Promise<FilePrepareStatus>;
-  process(file: MultipartFile, options: PhotoHandlerOptions): Promise<FilePrepareStatus>;
+  process(file: MultipartFile, options?: FilePrepareOptions): Promise<FilePrepareStatus>;
 }
