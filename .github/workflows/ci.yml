@@ -95,5 +95,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/fastify-static-server:latest
-            ${{ secrets.DOCKER_USERNAME }}/fastify-static-server:${{ env.VERSION }}
+            ${{ secrets.DOCKER_USERNAME }}/storage-service:latest
+            ${{ secrets.DOCKER_USERNAME }}/storage-service:${{ env.VERSION }}
