@@ -18,7 +18,6 @@ This server allows you to create and manage image collections using the rest API
 1. Add `docker-compose.yml`
 
 ```yml
-
 ---
 static-server:
   image: kekovina/fastify-static-server:latest

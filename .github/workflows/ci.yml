@@ -1,0 +1,99 @@
+name: Release & Publish Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [published]
+
+jobs:
+  bump_version:
+    if: github.event_name == 'push'
+    name: Create release PR if changesets exist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check for changesets
+        id: changeset_check
+        run: |
+          if [ -z "$(ls .changeset 2>/dev/null)" ]; then
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changesets=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Create release PR
+        if: steps.changeset_check.outputs.has_changesets == 'true'
+        uses: changesets/action@v1
+        with:
+          version: npx changeset version
+          commit: "ci: apply version bump"
+          publish: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  create_release:
+    if: github.event_name == 'push'
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+
+      # Получаем текущую версию из package.json
+      - id: get_version
+        run: echo "version=v$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      # Проверяем, был ли уже релиз с таким тегом
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if gh release view "${{ env.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Создаем релиз вручную
+      - name: Create GitHub release
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          gh release create "${{ env.version }}" \
+            --title "Release ${{ env.version }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker_publish:
+    if: github.event_name == 'release'
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Extract version from GitHub release tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/storage-service:latest
+            ${{ secrets.DOCKER_USERNAME }}/storage-service:${{ env.VERSION }}
