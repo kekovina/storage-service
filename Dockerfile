@@ -29,4 +29,6 @@ COPY --from=build /app/package-lock.json ./package-lock.json
 RUN npm pkg set scripts.prepare="echo 'skip prepare'"
 RUN npm install --production
 
+VOLUME [ "/uploads" ]
+
 CMD ["node", "dist/index.js"]
