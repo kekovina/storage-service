@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
   release:
     types: [created, published]
 
@@ -100,9 +101,12 @@ jobs:
           fi
       - name: Create Pull Request
         if: steps.check_pr.outputs.create_pr == 'true'
-        run: gh pr create \ --title "Merge new changes" \ --body "This PR was created automatically by GitHub Actions" \ --head dev \ --base main
+        run: gh pr create --title "Merge new changes" --body "This PR was created automatically by GitHub Actions" --head dev --base main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - id: get_version
+        run:
+          echo "version=v$(node -p "require('./package.json').version")" >> $GITHUB_ENV
 
           # Проверяем, был ли уже релиз с таким тегом
       - name: Check if tag exists
@@ -140,7 +144,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Extract version from GitHub release tag
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        run: if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV fi
       - name: Build and Push Docker image
         uses: docker/build-push-action@v5
         with:
