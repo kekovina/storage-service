@@ -15,7 +15,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
-      response: exceptionResponse,
+      response: {
+        message: exceptionResponse['message'],
+        code: exceptionResponse['code'] || 'UNEXPECTED_ERROR',
+      },
     });
   }
 }

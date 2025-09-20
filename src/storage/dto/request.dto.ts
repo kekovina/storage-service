@@ -2,8 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsString,
+  Matches,
   Max,
   Min,
   ValidateIf,
@@ -68,3 +71,49 @@ export class UploadFileOptionsDto {
   @IsOptional()
   default?: UploadDefaultOptionsDto;
 }
+
+export class GetCollectionFilesParamsDto {
+  @ApiProperty({
+    type: String,
+    required: true,
+    description: 'Collection name',
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'Collection name is required' })
+  @Matches(/^[^/.]+$/, {
+    message: 'Collection name is invalid',
+  })
+  collection: string;
+}
+
+export class GetFileParamsDto {
+  @ApiProperty({
+    type: String,
+    required: true,
+    description: 'Collection name',
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'Collection name is required' })
+  @Matches(/^[^/.]+$/, {
+    message: 'Collection name is invalid',
+  })
+  collection: string;
+  @ApiProperty({
+    type: String,
+    required: true,
+    description: 'File name',
+  })
+  @IsNotEmpty({ message: 'File name is required' })
+  @IsString()
+  @Matches(/^[A-z0-9]+\.[A-z0-9]+$/, {
+    message: 'File name is invalid',
+  })
+  filename: string;
+}
+
+export class GetPreviewFileParamsDto extends GetFileParamsDto {}
+export class GetDownloadFileParamsDto extends GetFileParamsDto {}
+export class GetDeleteFileParamsDto extends GetFileParamsDto {}
+
+export class UploadFileParamsDto extends GetCollectionFilesParamsDto {}
+export class DropCollectionParamsDto extends GetCollectionFilesParamsDto {}

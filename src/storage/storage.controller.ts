@@ -16,7 +16,17 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '
 import { BaseErrorResponseDto } from './types';
 import { BearerAuthGuard } from '@/auth/bearer-auth-guard.guard';
 import { HttpExceptionFilter } from '@/http-exception.filter';
-import { UploadFileOptionsDto, UploadPhotoStorageDto } from './dto/request.dto';
+import {
+  DropCollectionParamsDto,
+  GetCollectionFilesParamsDto,
+  GetDeleteFileParamsDto,
+  GetDownloadFileParamsDto,
+  GetFileParamsDto,
+  GetPreviewFileParamsDto,
+  UploadFileOptionsDto,
+  UploadFileParamsDto,
+  UploadPhotoStorageDto,
+} from './dto/request.dto';
 import { StorageService } from './storage.service';
 import {
   CollectionFilesListResponseDto,
@@ -56,7 +66,7 @@ export class StorageController {
   @Post('/:collection')
   async create(
     @UploadedFile() file: Express.Multer.File,
-    @Param('collection') collection: string,
+    @Param() { collection }: UploadFileParamsDto,
     @Res() res: Response,
     @Body() opts: UploadFileOptionsDto
   ) {
@@ -95,7 +105,7 @@ export class StorageController {
   @UseGuards(BearerAuthGuard)
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection')
-  async findAll(@Param('collection') collection: string) {
+  async findAll(@Param() { collection }: GetCollectionFilesParamsDto) {
     return {
       collectionName: collection,
       files: await this.storageService.getCollectionFiles(collection),
@@ -114,11 +124,7 @@ export class StorageController {
   })
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection/:filename')
-  getFile(
-    @Res() res: Response,
-    @Param('collection') collection: string,
-    @Param('filename') filename: string
-  ) {
+  getFile(@Res() res: Response, @Param() { collection, filename }: GetFileParamsDto) {
     const file = this.storageService.getFile(collection, filename);
     return res.header('cache-control', 'public, max-age=31536000').sendFile(file);
   }
@@ -135,11 +141,7 @@ export class StorageController {
   })
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection/:filename/preview')
-  getPreview(
-    @Param('collection') collection: string,
-    @Param('filename') filename: string,
-    @Res() res: Response
-  ) {
+  getPreview(@Param() { collection, filename }: GetPreviewFileParamsDto, @Res() res: Response) {
     const file = this.storageService.getFile(collection, filename);
     return res.header('cache-control', 'public, max-age=31536000').sendFile(file);
   }
@@ -156,11 +158,7 @@ export class StorageController {
   })
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection/:filename/download')
-  download(
-    @Param('collection') collection: string,
-    @Param('filename') filename: string,
-    @Res() res: Response
-  ) {
+  download(@Param() { collection, filename }: GetDownloadFileParamsDto, @Res() res: Response) {
     const file = this.storageService.getFile(collection, filename);
     return res.header('Content-Disposition', `attachment; filename="${filename}"`).send(file);
   }
@@ -181,11 +179,7 @@ export class StorageController {
   @UseFilters(HttpExceptionFilter)
   @UseGuards(BearerAuthGuard)
   @Delete('/:collection/:filename')
-  remove(
-    @Param('collection') collection: string,
-    @Res() res: Response,
-    @Param('filename') filename: string
-  ) {
+  remove(@Param() { collection, filename }: GetDeleteFileParamsDto, @Res() res: Response) {
     this.storageService.dropFile(collection, filename);
     return res.status(HttpStatus.NO_CONTENT).send({ status: true });
   }
@@ -205,7 +199,7 @@ export class StorageController {
   @UseFilters(HttpExceptionFilter)
   @UseGuards(BearerAuthGuard)
   @Delete('/:collection')
-  dropCollection(@Param('collection') collection: string, @Res() res: Response) {
+  dropCollection(@Param() { collection }: DropCollectionParamsDto, @Res() res: Response) {
     this.storageService.dropCollection(collection);
     return res.status(HttpStatus.NO_CONTENT).send({ status: true });
   }
