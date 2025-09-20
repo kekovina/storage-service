@@ -98,13 +98,14 @@ jobs:
             echo "PR already exists: $pr_exists"
             echo "create_pr=false" >> $GITHUB_OUTPUT
           fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Pull Request
         if: steps.check_pr.outputs.create_pr == 'true'
         run: gh pr create \ --title "Merge new changes" \ --body "This PR was created automatically by GitHub Actions" \ --head dev \ --base main
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # Проверяем, был ли уже релиз с таким тегом
       - name: Check if tag exists
         id: check_tag
         run: |
