@@ -1,4 +1,3 @@
-import { MultipartFile } from '@fastify/multipart';
 import { FileHandler, FilePrepareStatusSuccess, PhotoHandlerOptions } from './types';
 import path from 'path';
 import { Injectable } from '@nestjs/common';
@@ -8,13 +7,13 @@ import { ERROR_CODES } from '@/consts';
 @Injectable()
 export class PhotoPrepareHandler implements FileHandler {
   constructor(private readonly imageOptimizerService: ImageOptimizerService) {}
-  async process(file: MultipartFile, options?: PhotoHandlerOptions) {
+  async process(file: Express.Multer.File, options?: PhotoHandlerOptions) {
     try {
-      const processedBuffer = await file.toBuffer();
+      const processedBuffer = file.buffer;
       const result = {
         file: {
           buffer: processedBuffer,
-          filename: file.filename,
+          filename: file.originalname,
         },
         preview: undefined,
         isPrepared: true as const,

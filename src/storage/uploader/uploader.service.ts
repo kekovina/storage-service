@@ -6,7 +6,6 @@ import path from 'path';
 import { PhotoPrepareHandler } from './handlers/photo';
 import { VideoPrepareHandler } from './handlers/video';
 import { DefaultPrepareHandler } from './handlers/default';
-import { MultipartFile } from '@fastify/multipart';
 import { FileHandler, FilePrepareOptions } from './handlers/types';
 
 @Injectable()
@@ -19,17 +18,24 @@ export class UploaderService {
   async upload(
     contentType: CONTENT_TYPES,
     targetPath: string,
-    parts: MultipartFile,
+    file: Express.Multer.File,
     options?: FilePrepareOptions
   ) {
     const handler = this.getHandler(contentType);
-    const result = await handler.process(parts, options);
+    const result = await handler.process(file, options);
     if (result.isPrepared) {
-      await this.saveToStorage(targetPath, result.file.filename, result.file.buffer);
+      await this.saveToStorage(targetPath, file.originalname, result.file.buffer);
       if (result.preview) {
-        await this.saveToStorage(targetPath, result.preview.filename, result.preview.buffer);
+        await this.saveToStorage(
+          path.join(targetPath, 'preview'),
+          result.preview.filename,
+          result.preview.buffer
+        );
       }
-      return true;
+      return {
+        preview: result.preview?.filename,
+        filename: result.file?.filename,
+      };
     }
     throw new Error(result.error.message);
   }

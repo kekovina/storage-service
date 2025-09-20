@@ -1,5 +1,4 @@
 import { ERROR_CODES } from '@/consts';
-import { MultipartFile } from '@fastify/multipart';
 
 export type PhotoHandlerOptions = {
   optimize?: boolean;
@@ -31,6 +30,6 @@ export type FilePrepareStatus = FilePrepareStatusFailed | FilePrepareStatusSucce
 export type FilePrepareOptions = PhotoHandlerOptions;
 
 export interface FileHandler {
-  process(file: MultipartFile): Promise<FilePrepareStatus>;
-  process(file: MultipartFile, options?: FilePrepareOptions): Promise<FilePrepareStatus>;
+  process(file: Express.Multer.File): Promise<FilePrepareStatus>;
+  process(file: Express.Multer.File, options?: FilePrepareOptions): Promise<FilePrepareStatus>;
 }

@@ -12,12 +12,11 @@ import {
 
 export class UploadPhotoStorageDto {
   @ApiProperty({
-    type: 'array',
-    items: { type: 'string', format: 'binary' },
+    type: Blob,
     required: true,
-    description: 'Files to upload',
+    description: 'File to upload',
   })
-  files: File[];
+  file: File;
 }
 export class UploadPhotoOptionsDto {
   @Type(() => Boolean)

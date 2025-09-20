@@ -1,13 +1,12 @@
-import { MultipartFile } from '@fastify/multipart';
 import { FileHandler } from './types';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class DefaultPrepareHandler implements FileHandler {
-  async process(file: MultipartFile) {
+  async process(file: Express.Multer.File) {
     return {
       file: {
-        buffer: await file.toBuffer(),
+        buffer: file.buffer,
         filename: file.filename,
       },
       isPrepared: true as const,

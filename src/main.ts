@@ -1,16 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
 import SwaggerConfig from '@/config/swagger.config';
 import { ConfigService } from '@nestjs/config';
-import multipart from '@fastify/multipart';
 import { supportedMimeTypes } from './consts';
 
 async function bootstrap() {
   const isProduction = process.env.NODE_ENV === 'production';
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const mimeTypes =
     configService
@@ -32,15 +30,8 @@ async function bootstrap() {
   }
   const port = configService.get('APP_PORT') as number;
 
-  await app.register(multipart, {
-    limits: {
-      fileSize: configService.get('MAX_FILE_SIZE') as number,
-      files: configService.get('MAX_FILES') as number,
-    },
-  });
-
-  await app.listen(port || 3000, '0.0.0.0', (_, address) => {
-    Logger.log(`Application is running on: ${address}`, 'Bootstrap');
+  await app.listen(port || 3000, '0.0.0.0', async () => {
+    Logger.log(`Application is running on: ${await app.getUrl()}`, 'Bootstrap');
   });
 }
 

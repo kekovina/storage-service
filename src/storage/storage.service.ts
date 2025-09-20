@@ -1,12 +1,11 @@
-import { HttpException, HttpStatus, Injectable, StreamableFile } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import path from 'node:path';
-import fs, { createReadStream } from 'node:fs';
+import fs from 'node:fs';
 import { FOLDER_PATH } from '@/storage/config';
 import { UploaderService } from '@/storage/uploader/uploader.service';
 import { getDirectories } from '@/storage/libs/getDirictories';
 import { getFiles } from '@/storage/libs/getFiles';
 import { ERROR_CODES } from '@/consts';
-import { MultipartFile } from '@fastify/multipart';
 import { parseMIMEToContentType } from '@/libs/parseMIMEToContentType';
 import { UploadFileOptionsDto } from './dto/request.dto';
 import { mkdir } from 'node:fs/promises';
@@ -18,53 +17,38 @@ export class StorageService {
     private readonly uploader: UploaderService,
     private readonly configService: ConfigService
   ) {}
-  async upload(
-    collection: string,
-    parts: AsyncIterableIterator<MultipartFile>,
-    options?: UploadFileOptionsDto
-  ) {
-    const files: string[] = [];
-    const counters = { uploadedCount: 0, errorsCount: 0 };
-    const errors: Array<Record<string, string>> = [];
-
+  async upload(collection: string, file: Express.Multer.File, options?: UploadFileOptionsDto) {
     const collectionPath = path.join(FOLDER_PATH, collection);
 
-    try {
-      for await (const part of parts) {
-        const result = await this.handlePart(part, collectionPath, options);
-        if (result.error) {
-          errors.push({ filename: part.filename, message: result.message });
-          counters.errorsCount++;
-        } else {
-          files.push(part.filename);
-          counters.uploadedCount++;
-        }
-      }
-    } catch (e) {
+    const { mimetype } = file;
+    if (!this.configService.get('ACCEPTED_MIME_TYPES').includes(mimetype)) {
       throw new HttpException(
-        {
-          message: 'No files to upload',
-          code: ERROR_CODES.NO_FILES_TO_UPLOAD,
-        },
+        { message: 'Unsupported MIME type', code: ERROR_CODES.UNSUPPORTED_MIME_TYPE },
         HttpStatus.BAD_REQUEST
       );
     }
 
-    return {
-      status: counters.uploadedCount > 0,
-      uploadedCount: counters.uploadedCount,
-      errorsCount: counters.errorsCount,
-      files,
-      errors,
-    };
-  }
+    const contentType = parseMIMEToContentType(mimetype);
+    const optionsByContentType = options?.[contentType];
+    try {
+      const result = await this.uploader.upload(
+        contentType,
+        collectionPath,
+        file,
+        optionsByContentType
+      );
 
-  download(collection: string, filename: string) {
-    const { stream, filename: name } = this.getFile(collection, filename);
-    return new StreamableFile(stream, {
-      type: 'application/pdf',
-      disposition: `attachment; filename="${name}"`,
-    });
+      return {
+        error: false,
+        fileUrl: result.filename,
+        previewUrl: result.preview,
+      };
+    } catch (e) {
+      throw new HttpException(
+        { message: e.message, code: ERROR_CODES.FILE_UPLOAD_ERROR },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   getCollectionFiles(collection: string) {
@@ -89,7 +73,7 @@ export class StorageService {
     }
   }
 
-  getFile(collection: string, filename: string) {
+  getFile(collection: string, filename: string, isPreview = false) {
     if (!fs.existsSync(path.join(FOLDER_PATH, collection, filename)))
       throw new HttpException(
         {
@@ -99,35 +83,13 @@ export class StorageService {
         HttpStatus.NOT_FOUND
       );
     try {
-      const filePath = path.join(FOLDER_PATH, collection, filename);
-      const stream = createReadStream(filePath);
-
-      return { stream, filename };
-    } catch (e) {
-      throw new HttpException(
-        {
-          code: ERROR_CODES.FILE_READ_ERROR,
-          message: 'Could not read file',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR
+      const filePath = path.join(
+        FOLDER_PATH,
+        collection,
+        isPreview ? 'preview/' + filename : filename
       );
-    }
-  }
 
-  getPreview(collection: string, filename: string) {
-    if (!fs.existsSync(path.join(FOLDER_PATH, collection, 'preview', filename)))
-      throw new HttpException(
-        {
-          code: ERROR_CODES.FILE_NOT_FOUND,
-          message: 'Preview not found',
-        },
-        HttpStatus.NOT_FOUND
-      );
-    try {
-      const filePath = path.join(FOLDER_PATH, collection, 'preview', filename);
-      const stream = createReadStream(filePath);
-
-      return { stream, filename };
+      return filePath;
     } catch (e) {
       throw new HttpException(
         {
@@ -201,25 +163,6 @@ export class StorageService {
           );
         }
       }
-    }
-  }
-
-  private async handlePart(
-    part: MultipartFile,
-    collectionPath: string,
-    options?: UploadFileOptionsDto
-  ) {
-    const { mimetype, filename } = part;
-    if (!this.configService.get('ACCEPTED_MIME_TYPES').includes(mimetype)) {
-      return { error: true, message: 'Unsupported MIME type', filename };
-    }
-    const contentType = parseMIMEToContentType(mimetype);
-    const optionsByContentType = options?.[contentType];
-    try {
-      await this.uploader.upload(contentType, collectionPath, part, optionsByContentType);
-      return { error: false, filename };
-    } catch (e) {
-      return { error: true, message: e.message, filename };
     }
   }
 }
