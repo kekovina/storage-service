@@ -1,7 +1,7 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, StreamableFile } from '@nestjs/common';
 import path from 'node:path';
 import fs, { createReadStream } from 'node:fs';
-import { AVAILABLE_MIMETYPES, FOLDER_PATH } from '@/storage/config';
+import { FOLDER_PATH } from '@/storage/config';
 import { UploaderService } from '@/storage/uploader/uploader.service';
 import { getDirectories } from '@/storage/libs/getDirictories';
 import { getFiles } from '@/storage/libs/getFiles';
@@ -9,50 +9,62 @@ import { ERROR_CODES } from '@/consts';
 import { MultipartFile } from '@fastify/multipart';
 import { parseMIMEToContentType } from '@/libs/parseMIMEToContentType';
 import { UploadFileOptionsDto } from './dto/request.dto';
+import { mkdir } from 'node:fs/promises';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class StorageService {
-  constructor(private readonly uploader: UploaderService) {}
+  constructor(
+    private readonly uploader: UploaderService,
+    private readonly configService: ConfigService
+  ) {}
   async upload(
     collection: string,
     parts: AsyncIterableIterator<MultipartFile>,
     options?: UploadFileOptionsDto
   ) {
     const files: string[] = [];
-    let uploadedCount = 0;
-    let errorsCount = 0;
+    const counters = { uploadedCount: 0, errorsCount: 0 };
     const errors: Array<Record<string, string>> = [];
 
     const collectionPath = path.join(FOLDER_PATH, collection);
 
-    for await (const part of parts) {
-      const { mimetype, filename } = part;
-      if (!AVAILABLE_MIMETYPES.includes(mimetype)) {
-        errorsCount++;
-        errors.push({ [filename]: `Mimetype not allowed: ${mimetype}` });
-        continue;
+    try {
+      for await (const part of parts) {
+        const result = await this.handlePart(part, collectionPath, options);
+        if (result.error) {
+          errors.push({ filename: part.filename, message: result.message });
+          counters.errorsCount++;
+        } else {
+          files.push(part.filename);
+          counters.uploadedCount++;
+        }
       }
-
-      const contentType = parseMIMEToContentType(mimetype);
-      const optionsByContentType = options?.[contentType];
-
-      try {
-        await this.uploader.upload(contentType, collectionPath, part, optionsByContentType);
-        uploadedCount++;
-        files.push(filename);
-      } catch (e) {
-        errorsCount++;
-        errors.push({ [filename]: e.message });
-      }
+    } catch (e) {
+      throw new HttpException(
+        {
+          message: 'No files to upload',
+          code: ERROR_CODES.NO_FILES_TO_UPLOAD,
+        },
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     return {
-      status: uploadedCount > 0,
-      uploadedCount,
-      errorsCount,
+      status: counters.uploadedCount > 0,
+      uploadedCount: counters.uploadedCount,
+      errorsCount: counters.errorsCount,
       files,
       errors,
     };
+  }
+
+  download(collection: string, filename: string) {
+    const { stream, filename: name } = this.getFile(collection, filename);
+    return new StreamableFile(stream, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${name}"`,
+    });
   }
 
   getCollectionFiles(collection: string) {
@@ -171,17 +183,43 @@ export class StorageService {
     }
   }
 
-  getAllCollections() {
+  async getAllCollections() {
     try {
-      return getDirectories(FOLDER_PATH);
+      return await getDirectories(FOLDER_PATH);
     } catch (e) {
-      throw new HttpException(
-        {
-          code: ERROR_CODES.DIR_READ_ERROR,
-          message: 'Could not read collections',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      if (e.message.includes('no such file or directory')) {
+        try {
+          await mkdir(FOLDER_PATH, { recursive: true });
+          return [];
+        } catch (e) {
+          throw new HttpException(
+            {
+              code: ERROR_CODES.CREATE_UPLOAD_DIR_ERROR,
+              message: 'Could not create upload directory',
+            },
+            HttpStatus.INTERNAL_SERVER_ERROR
+          );
+        }
+      }
+    }
+  }
+
+  private async handlePart(
+    part: MultipartFile,
+    collectionPath: string,
+    options?: UploadFileOptionsDto
+  ) {
+    const { mimetype, filename } = part;
+    if (!this.configService.get('ACCEPTED_MIME_TYPES').includes(mimetype)) {
+      return { error: true, message: 'Unsupported MIME type', filename };
+    }
+    const contentType = parseMIMEToContentType(mimetype);
+    const optionsByContentType = options?.[contentType];
+    try {
+      await this.uploader.upload(contentType, collectionPath, part, optionsByContentType);
+      return { error: false, filename };
+    } catch (e) {
+      return { error: true, message: e.message, filename };
     }
   }
 }

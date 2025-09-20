@@ -11,6 +11,10 @@ const validationSchema = Joi.object({
     .default(
       'application/pdf,image/png,image/jpeg,image/gif,image/webp,image/svg+xml,video/mp4,video/webm,video/ogg'
     ),
+
+  MAX_FILE_SIZE: Joi.number().default(5 * 1024 * 1024),
+
+  MAX_FILES: Joi.number().default(10),
 });
 
 export default validationSchema;

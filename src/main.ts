@@ -32,7 +32,12 @@ async function bootstrap() {
   }
   const port = configService.get('APP_PORT') as number;
 
-  await app.register(multipart);
+  await app.register(multipart, {
+    limits: {
+      fileSize: configService.get('MAX_FILE_SIZE') as number,
+      files: configService.get('MAX_FILES') as number,
+    },
+  });
 
   await app.listen(port || 3000, '0.0.0.0', (_, address) => {
     Logger.log(`Application is running on: ${address}`, 'Bootstrap');

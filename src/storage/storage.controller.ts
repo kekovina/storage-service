@@ -39,17 +39,17 @@ import {
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 
-  @ApiOperation({ summary: 'Upload photo' })
+  @ApiOperation({ summary: 'Upload file' })
   @ApiBody({ type: UploadPhotoStorageDto })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({
     status: HttpStatus.CREATED,
-    description: 'The photo/photos has/have been successfully uploaded.',
+    description: 'The file has/have been successfully uploaded.',
     type: UploadFilesResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'No one photo has/have been uploaded.',
+    description: 'No one file has/have been uploaded.',
     type: UploadFilesResponseDto,
   })
   @UseFilters(HttpExceptionFilter)
@@ -141,9 +141,25 @@ export class StorageController {
     type: BaseErrorResponseDto,
   })
   @UseFilters(HttpExceptionFilter)
-  @Get('/:collection/preview/:filename')
+  @Get('/:collection/:filename/preview')
   getPreview(@Param('collection') collection: string, @Param('filename') filename: string) {
     return this.storageService.getPreview(collection, filename);
+  }
+
+  @ApiOperation({ summary: 'Download file' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'File',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'File not found',
+    type: BaseErrorResponseDto,
+  })
+  @UseFilters(HttpExceptionFilter)
+  @Get('/:collection/:filename/download')
+  download(@Param('collection') collection: string, @Param('filename') filename: string) {
+    return this.storageService.download(collection, filename);
   }
 
   //DELETE
