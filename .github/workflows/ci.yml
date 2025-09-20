@@ -5,11 +5,11 @@ on:
     branches:
       - main
   release:
-    types: [published]
+    types: [created, published]
 
 jobs:
   bump_version:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref_name == 'dev'
     name: Create release PR if changesets exist
     runs-on: ubuntu-latest
     steps:
@@ -42,6 +42,14 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     steps:
+      - name: Check for changesets
+        id: changeset_check
+        run: |
+          if [ -z "$(ls .changeset 2>/dev/null)" ]; then
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changesets=true" >> $GITHUB_OUTPUT
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -66,10 +74,54 @@ jobs:
 
       # Создаем релиз вручную
       - name: Create GitHub release
+        if: steps.check_tag.outputs.exists == 'false' && steps.changeset_check.outputs.has_changesets == 'false'
+        run: |
+          gh release create "${{ env.version }}" \
+            --title "Release ${{ env.version }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  push_in_dev:
+    if: github.event_name == 'push' && github.ref_name == 'dev'
+    name: "Push in dev"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if PR exists
+        id: check_pr
+        run: |
+          pr_exists=$(gh pr list --head dev --json number -q '.[0].number')
+          if [ -z "$pr_exists" ]; then
+            echo "no PR found"
+            echo "create_pr=true" >> $GITHUB_OUTPUT
+          else
+            echo "PR already exists: $pr_exists"
+            echo "create_pr=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Create Pull Request
+        if: steps.check_pr.outputs.create_pr == 'true'
+        run: gh pr create \ --title "Merge new changes" \ --body "This PR was created automatically by GitHub Actions" \ --head dev \ --base main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # Проверяем, был ли уже релиз с таким тегом
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if gh release view "${{ env.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub pre-release
         if: steps.check_tag.outputs.exists == 'false'
         run: |
           gh release create "${{ env.version }}" \
             --title "Release ${{ env.version }}" \
+            --prerelease \
             --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
