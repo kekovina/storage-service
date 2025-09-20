@@ -6,7 +6,7 @@ on:
       - main
       - dev
   release:
-    types: [created, published]
+    types: [created, published, prereleased]
 
 jobs:
   bump_version:
@@ -43,6 +43,12 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+
       - name: Check for changesets
         id: changeset_check
         run: |
@@ -51,13 +57,7 @@ jobs:
           else
             echo "has_changesets=true" >> $GITHUB_OUTPUT
           fi
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci
 
-      # Получаем текущую версию из package.json
       - id: get_version
         run: |
           base_version=$(node -p "require('./package.json').version")
@@ -67,7 +67,6 @@ jobs:
             echo "version=v${base_version}" >> $GITHUB_ENV
           fi
 
-      # Проверяем, был ли уже релиз с таким тегом
       - name: Check if tag exists
         id: check_tag
         run: |
@@ -79,7 +78,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Создаем релиз вручную
       - name: Create GitHub release
         if: steps.check_tag.outputs.exists == 'false' && steps.changeset_check.outputs.has_changesets == 'false'
         run: |
@@ -94,8 +92,18 @@ jobs:
     name: "Push in dev"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # <--- вот этого не хватает
+      - uses: actions/checkout@v4
+      - name: Check for changesets
+
+        id: changeset_check
+        run: |
+          if [ -z "$(ls .changeset 2>/dev/null)" ]; then
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changesets=true" >> $GITHUB_OUTPUT
+          fi
       - name: Check if PR exists
+        if: steps.changeset_check.outputs.has_changesets == 'true'
         id: check_pr
         run: |
           pr_exists=$(gh pr list --head dev --json number -q '.[0].number')
@@ -109,11 +117,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Pull Request
-        if: steps.check_pr.outputs.create_pr == 'true'
+        if: steps.check_pr.outputs.create_pr == 'true' && steps.changeset_check.outputs.has_changesets == 'true'
         run: gh pr create --title "Merge new changes" --body "This PR was created automatically by GitHub Actions" --head dev --base main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: get_version
+        if: steps.changeset_check.outputs.has_changesets == 'true'
         run: |
           base_version=$(node -p "require('./package.json').version")
           if [ "${GITHUB_REF_NAME}" = "dev" ]; then
@@ -123,6 +132,7 @@ jobs:
           fi
 
       - name: Check if tag exists
+        if: steps.changeset_check.outputs.has_changesets == 'true'
         id: check_tag
         run: |
           if gh release view "${{ env.version }}" >/dev/null 2>&1; then
@@ -134,7 +144,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub pre-release
-        if: steps.check_tag.outputs.exists == 'false'
+        if: steps.check_tag.outputs.exists == 'false' && steps.changeset_check.outputs.has_changesets == 'true'
         run: |
           gh release create "${{ env.version }}" \
             --title "Release ${{ env.version }}" \
