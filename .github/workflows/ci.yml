@@ -176,6 +176,8 @@ jobs:
             --title "Release $CURRENT" \
             --prerelease \
             --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Docker image
         if: steps.changeset_check.outputs.has_changesets == 'true'
