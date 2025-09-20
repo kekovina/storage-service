@@ -59,7 +59,13 @@ jobs:
 
       # Получаем текущую версию из package.json
       - id: get_version
-        run: echo "version=v$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+        run: |
+          base_version=$(node -p "require('./package.json').version")
+          if [ "${GITHUB_REF_NAME}" = "dev" ]; then
+            echo "version=v${base_version}-alpha.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          else
+            echo "version=v${base_version}" >> $GITHUB_ENV
+          fi
 
       # Проверяем, был ли уже релиз с таким тегом
       - name: Check if tag exists
@@ -108,7 +114,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: get_version
-        run: echo "version=v$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+        run: |
+          base_version=$(node -p "require('./package.json').version")
+          if [ "${GITHUB_REF_NAME}" = "dev" ]; then
+            echo "version=v${base_version}-alpha.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          else
+            echo "version=v${base_version}" >> $GITHUB_ENV
+          fi
 
       - name: Check if tag exists
         id: check_tag
