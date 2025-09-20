@@ -89,6 +89,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Docker image
+        if: steps.changeset_check.outputs.has_changesets == 'false'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -177,6 +178,7 @@ jobs:
             --generate-notes
 
       - name: Build and Push Docker image
+        if: steps.changeset_check.outputs.has_changesets == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
