@@ -6,7 +6,7 @@ on:
       - main
       - dev
   release:
-    types: [created, published, prereleased]
+    types: [created, published, prereleased, released]
 
 jobs:
   bump_version:
@@ -23,11 +23,12 @@ jobs:
       - name: Check for changesets
         id: changeset_check
         run: |
-          if [ -z "$(ls .changeset 2>/dev/null)" ]; then
-            echo "has_changesets=false" >> $GITHUB_OUTPUT
-          else
+          if find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | grep -q .; then
             echo "has_changesets=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
           fi
+
       - name: Create release PR
         if: steps.changeset_check.outputs.has_changesets == 'true'
         uses: changesets/action@v1
@@ -52,10 +53,10 @@ jobs:
       - name: Check for changesets
         id: changeset_check
         run: |
-          if [ -z "$(ls .changeset 2>/dev/null)" ]; then
-            echo "has_changesets=false" >> $GITHUB_OUTPUT
-          else
+          if find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | grep -q .; then
             echo "has_changesets=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
           fi
 
       - id: get_version
@@ -94,14 +95,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check for changesets
-
         id: changeset_check
         run: |
-          if [ -z "$(ls .changeset 2>/dev/null)" ]; then
-            echo "has_changesets=false" >> $GITHUB_OUTPUT
-          else
+          if find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | grep -q .; then
             echo "has_changesets=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
           fi
+
       - name: Check if PR exists
         if: steps.changeset_check.outputs.has_changesets == 'true'
         id: check_pr
@@ -146,15 +147,30 @@ jobs:
       - name: Create GitHub pre-release
         if: steps.check_tag.outputs.exists == 'false' && steps.changeset_check.outputs.has_changesets == 'true'
         run: |
-          gh release create "${{ env.version }}" \
-            --title "Release ${{ env.version }}" \
+          CURRENT="${{ env.version }}"
+
+          LAST_MAIN=$(gh release list --exclude-drafts --limit 1 --json tagName,isPrerelease \
+            --jq '.[] | select(.isPrerelease==false) | .tagName' | sed 's/^v//')
+
+          echo "Current version: $CURRENT"
+          echo "Last main version: $LAST_MAIN"
+
+          BASE_VERSION=$(echo "$CURRENT" | sed -E 's/-alpha.*//')
+
+          if [ "$BASE_VERSION" = "$LAST_MAIN" ]; then
+            echo "❌ Error: cannot create pre-release $CURRENT due to existing release $LAST_MAIN in main branch"
+            exit 1
+          fi
+
+          gh release create "$CURRENT" \
+            --title "Release $CURRENT" \
             --prerelease \
             --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker_publish:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' && github.event.release.draft == false
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
     steps:
