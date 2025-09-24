@@ -1,6 +1,8 @@
 # Storage Service
 
-![NestJS](https://img.shields.io/badge/nestjs-%23000000.svg?style=for-the-badge&logo=nestjs&logoColor=ea2864) ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white) This server allows you to create and manage image collections using the rest API.
+![NestJS](https://img.shields.io/badge/nestjs-%23000000.svg?style=for-the-badge&logo=nestjs&logoColor=ea2864) ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white) 
+
+This server allows you to create and manage image collections using the rest API.
 
 ## How to use
 
@@ -48,7 +50,7 @@ static-server:
 
 | env | description | required | default | example |
 | :-- | :-- | :-- | :-- | :-- |
-| `BEARER_TOKENS` | array of authorized tokens | + |  | ["token1", "token2"] |
+| `BEARER_TOKENS` | array of authorized tokens | + |  | "token1,token2" |
 | `ACCEPTED_MIME_TYPES` | accepted mime types |  | `image/png` ,`image/jpeg` , `image/webp` , `image/tiff` , `application/pdf` , `video/mp4` ,`video/webm` ,`video/ogg` |  |
 | `APP_PORT` | server port |  | 3000 | 5050 |
 | `SWAGGER_ENABLED` | enabling swagger docs |  | 0 | 1 |
