@@ -7,7 +7,7 @@ export class DefaultPrepareHandler implements FileHandler {
     return {
       file: {
         buffer: file.buffer,
-        filename: file.filename,
+        filename: file.originalname,
       },
       isPrepared: true as const,
     };

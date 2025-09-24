@@ -19,7 +19,6 @@ export class StorageService {
   ) {}
   async upload(collection: string, file: Express.Multer.File, options?: UploadFileOptionsDto) {
     const collectionPath = path.join(FOLDER_PATH, collection);
-
     const { mimetype } = file;
     if (!this.configService.get('ACCEPTED_MIME_TYPES').includes(mimetype)) {
       throw new HttpException(
@@ -38,10 +37,12 @@ export class StorageService {
         optionsByContentType
       );
 
+      console.log(result);
+
       return {
         error: false,
-        fileUrl: result.filename,
-        previewUrl: result.preview,
+        fileUrl: `/storage/${collection}/${result.filename}`,
+        previewUrl: result.preview ? `/storage/${collection}/preview/${result.preview}` : null,
       };
     } catch (e) {
       throw new HttpException(

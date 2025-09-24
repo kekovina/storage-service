@@ -4,10 +4,10 @@ import { StorageController } from './storage.controller';
 import { StorageService } from './storage.service';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { memoryStorage } from 'multer';
 
 @Module({
   imports: [
-    UploaderModule,
     MulterModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -16,8 +16,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           files: configService.get<number>('MAX_FILES_COUNT'),
           fileSize: configService.get<number>('MAX_FILE_SIZE'),
         },
+        storage: memoryStorage(),
       }),
     }),
+    UploaderModule,
   ],
   controllers: [StorageController],
   providers: [StorageService],
