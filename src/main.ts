@@ -7,14 +7,15 @@ import { ConfigService } from '@nestjs/config';
 import { supportedMimeTypes } from './consts';
 
 async function bootstrap() {
-  const isProduction = process.env.NODE_ENV === 'production';
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+  const isSwaggerEnabled = !!parseInt(configService.get('SWAGGER_ENABLED') as string);
+
   const mimeTypes =
     configService
       .get('ACCEPTED_MIME_TYPES')
       ?.split(',')
-      .map((mimeType) => mimeType.trim()) ?? [];
+      .map((mimeType) => mimeType.trim()) ?? supportedMimeTypes;
 
   const invalid = mimeTypes.filter((mime) => !supportedMimeTypes.includes(mime));
 
@@ -24,7 +25,7 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
-  if (!isProduction) {
+  if (isSwaggerEnabled) {
     const document = SwaggerModule.createDocument(app, SwaggerConfig);
     SwaggerModule.setup('api', app, document);
   }

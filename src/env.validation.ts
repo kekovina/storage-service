@@ -14,7 +14,7 @@ const validationSchema = Joi.object({
 
   MAX_FILE_SIZE: Joi.number().default(5 * 1024 * 1024),
 
-  MAX_FILES: Joi.number().default(10),
+  SWAGGER_ENABLED: Joi.number().default(0),
 });
 
 export default validationSchema;

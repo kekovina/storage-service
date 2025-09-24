@@ -24,7 +24,7 @@ export class UploaderService {
     const handler = this.getHandler(contentType);
     const result = await handler.process(file, options);
     if (result.isPrepared) {
-      await this.saveToStorage(targetPath, file.originalname, result.file.buffer);
+      await this.saveToStorage(targetPath, result.file.filename, result.file.buffer);
       if (result.preview) {
         await this.saveToStorage(
           path.join(targetPath, 'preview'),

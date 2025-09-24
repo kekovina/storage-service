@@ -7,7 +7,7 @@ export class VideoPrepareHandler implements FileHandler {
     return {
       file: {
         buffer: file.buffer,
-        filename: file.filename,
+        filename: file.originalname,
       },
       isPrepared: true as const,
     };
