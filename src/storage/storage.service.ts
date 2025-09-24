@@ -37,8 +37,6 @@ export class StorageService {
         optionsByContentType
       );
 
-      console.log(result);
-
       return {
         error: false,
         fileUrl: `/storage/${collection}/${result.filename}`,
