@@ -13,7 +13,6 @@ import { memoryStorage } from 'multer';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
         limits: {
-          files: configService.get<number>('MAX_FILES_COUNT'),
           fileSize: configService.get<number>('MAX_FILE_SIZE'),
         },
         storage: memoryStorage(),
