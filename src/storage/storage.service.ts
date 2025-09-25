@@ -9,18 +9,15 @@ import { ERROR_CODES } from '@/consts';
 import { parseMIMEToContentType } from '@/libs/parseMIMEToContentType';
 import { UploadFileOptionsDto } from './dto/request.dto';
 import { mkdir } from 'node:fs/promises';
-import { ConfigService } from '@nestjs/config';
+import { getAcceptedMIMETypes } from './libs/getAcceptedMIMETypes';
 
 @Injectable()
 export class StorageService {
-  constructor(
-    private readonly uploader: UploaderService,
-    private readonly configService: ConfigService
-  ) {}
+  constructor(private readonly uploader: UploaderService) {}
   async upload(collection: string, file: Express.Multer.File, options?: UploadFileOptionsDto) {
     const collectionPath = path.join(FOLDER_PATH, collection);
     const { mimetype } = file;
-    if (!this.configService.get('ACCEPTED_MIME_TYPES').includes(mimetype)) {
+    if (!getAcceptedMIMETypes().includes(mimetype)) {
       throw new HttpException(
         { message: 'Unsupported MIME type', code: ERROR_CODES.UNSUPPORTED_MIME_TYPE },
         HttpStatus.BAD_REQUEST
