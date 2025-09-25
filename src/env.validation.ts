@@ -6,11 +6,7 @@ const validationSchema = Joi.object({
   PORT: Joi.number(),
   BEARER_TOKENS: Joi.string().required(),
 
-  ACCEPTED_MIME_TYPES: Joi.string()
-    .required()
-    .default(
-      'application/pdf,image/png,image/jpeg,image/gif,image/webp,image/svg+xml,video/mp4,video/webm,video/ogg'
-    ),
+  ACCEPTED_MIME_TYPES: Joi.string(),
 
   MAX_FILE_SIZE: Joi.number().default(5 * 1024 * 1024),
 
