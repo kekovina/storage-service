@@ -1,5 +1,11 @@
 # @kekovina/storage-service
 
+## 0.1.2
+
+### Patch Changes
+
+- ef79c1c: fix mime types validation
+
 ## 0.1.1
 
 ### Patch Changes
