@@ -1,5 +1,11 @@
 # @kekovina/storage-service
 
+## 0.1.3
+
+### Patch Changes
+
+- cf68e1f: fix accepted mime ypes error
+
 ## 0.1.2
 
 ### Patch Changes
