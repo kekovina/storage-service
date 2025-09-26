@@ -1,5 +1,11 @@
 # @kekovina/storage-service
 
+## 0.1.4
+
+### Patch Changes
+
+- 73adcd7: fix preview url in response
+
 ## 0.1.3
 
 ### Patch Changes
