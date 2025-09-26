@@ -37,7 +37,7 @@ export class StorageService {
       return {
         error: false,
         fileUrl: `/storage/${collection}/${result.filename}`,
-        previewUrl: result.preview ? `/storage/${collection}/preview/${result.preview}` : null,
+        previewUrl: result.preview ? `/storage/${collection}/${result.preview}/preview` : null,
       };
     } catch (e) {
       throw new HttpException(
