@@ -2,12 +2,11 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { checkOrCreateCollectionExists } from '@/storage/libs/checkOrCreateCollectionExists';
 import { CONTENT_TYPES, ERROR_CODES } from '@/consts';
 import fs from 'fs';
-import path, { extname } from 'path';
+import path from 'path';
 import { PhotoPrepareHandler } from './handlers/photo';
 import { VideoPrepareHandler } from './handlers/video';
 import { DefaultPrepareHandler } from './handlers/default';
 import { FileHandler, FilePrepareOptions } from './handlers/types';
-import { createHash, randomBytes } from 'crypto';
 
 @Injectable()
 export class UploaderService {
@@ -25,14 +24,17 @@ export class UploaderService {
     const handler = this.getHandler(contentType);
     const result = await handler.process(file, options);
     if (result.isPrepared) {
-      const filename = this.generateFilename(result.file.filename);
-      await this.saveToStorage(targetPath, filename, result.file.buffer);
+      await this.saveToStorage(targetPath, result.file.filename, result.file.buffer);
       if (result.preview) {
-        await this.saveToStorage(path.join(targetPath, 'preview'), filename, result.preview.buffer);
+        await this.saveToStorage(
+          path.join(targetPath, 'preview'),
+          result.preview.filename,
+          result.preview.buffer
+        );
       }
       return {
-        preview: result.preview ? filename : null,
-        filename: filename,
+        preview: result.preview?.filename,
+        filename: result.file?.filename,
       };
     }
     throw new Error(result.error.message);
@@ -64,16 +66,5 @@ export class UploaderService {
     } catch (e) {
       return false;
     }
-  }
-
-  private generateFilename(originalName: string) {
-    const random = randomBytes(16).toString('hex');
-    const data = `${Date.now()}-${random}-${originalName}`;
-
-    const ext = extname(originalName);
-
-    const hash = createHash('sha256').update(data).digest('hex').slice(0, 20);
-
-    return `${hash}${ext}`;
   }
 }
