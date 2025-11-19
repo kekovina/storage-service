@@ -1,5 +1,11 @@
 # @kekovina/storage-service
 
+## 0.1.5
+
+### Patch Changes
+
+- dd6ab50: feat: generate filename as hash
+
 ## 0.1.4
 
 ### Patch Changes
