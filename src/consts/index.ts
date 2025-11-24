@@ -26,6 +26,8 @@ export const supportedMimeTypes = [
   'application/pdf',
   'image/png',
   'image/jpeg',
+  'image/gif',
+  'image/bmp',
   'image/tiff',
   'image/webp',
   'video/mp4',
