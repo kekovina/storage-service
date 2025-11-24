@@ -38,6 +38,8 @@ static-server:
 | `image/png`       |
 | `image/jpeg`      |
 | `image/webp`      |
+| `image/gif`       |
+| `image/bmp`       |
 | `image/tiff`      |
 | `application/pdf` |
 | `video/mp4`       |
@@ -49,7 +51,7 @@ static-server:
 | env | description | required | default | example |
 | :-- | :-- | :-- | :-- | :-- |
 | `BEARER_TOKENS` | array of authorized tokens | + |  | ["token1", "token2"] |
-| `ACCEPTED_MIME_TYPES` | accepted mime types |  | `image/png` ,`image/jpeg` , `image/webp` , `image/tiff` , `application/pdf` , `video/mp4` ,`video/webm` ,`video/ogg` |  |
+| `ACCEPTED_MIME_TYPES` | accepted mime types |  | `image/png` ,`image/jpeg` , `image/webp` , `image/tiff`, `image/gif`, `image/bmp` , `application/pdf` , `video/mp4` ,`video/webm` ,`video/ogg` |  |
 | `APP_PORT` | server port |  | 3000 | 5050 |
 | `SWAGGER_ENABLED` | enabling swagger docs |  | 0 | 1 |
 | `MAX_FILE_SIZE` | max file size in bytes |  | 5242880(5MB) | 5242880 |
