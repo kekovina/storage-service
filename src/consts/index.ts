@@ -14,6 +14,7 @@ export enum ERROR_CODES {
   FILE_SIZE_ERROR = 'FILE_SIZE_ERROR',
   FILE_TYPE_ERROR = 'FILE_TYPE_ERROR',
   UNSUPPORTED_MIME_TYPE = 'UNSUPPORTED_MIME_TYPE',
+  SVG_OPTIMIZATION_NOT_SUPPORTED = 'SVG_OPTIMIZATION_NOT_SUPPORTED',
 }
 
 export enum CONTENT_TYPES {
@@ -29,6 +30,8 @@ export const supportedMimeTypes = [
   'image/gif',
   'image/bmp',
   'image/tiff',
+  'image/gif',
+  'image/svg+xml',
   'image/webp',
   'video/mp4',
   'video/webm',
