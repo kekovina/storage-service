@@ -4,6 +4,7 @@ export type PhotoHandlerOptions = {
   optimize?: boolean;
   preview?: boolean;
   previewSize?: number;
+  keepOriginalFilename?: boolean;
 };
 
 export type FilePrepareStatusFailed = {

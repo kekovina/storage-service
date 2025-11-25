@@ -1,5 +1,11 @@
 # @kekovina/storage-service
 
+## 0.1.7
+
+### Patch Changes
+
+- 3c8de6c: feat: keepOrifinalFilename option
+
 ## 0.1.6
 
 ### Patch Changes
