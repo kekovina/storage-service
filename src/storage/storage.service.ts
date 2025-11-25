@@ -26,13 +26,13 @@ export class StorageService {
 
     const contentType = parseMIMEToContentType(mimetype);
     const optionsByContentType = options?.[contentType];
+    const mergedOptions = {
+      ...optionsByContentType,
+      keepOriginalFilename:
+        options?.keepOriginalFilename ?? optionsByContentType?.keepOriginalFilename,
+    };
     try {
-      const result = await this.uploader.upload(
-        contentType,
-        collectionPath,
-        file,
-        optionsByContentType
-      );
+      const result = await this.uploader.upload(contentType, collectionPath, file, mergedOptions);
 
       return {
         error: false,

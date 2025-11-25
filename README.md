@@ -65,12 +65,23 @@ static-server:
   Content-Type: multipart/form-data
   Authorization: Bearer {token}
 
-  photo[optimize]:boolean=true // optimization(convert to webp)
-  photo[preview]:boolean=true // generate preview(convert to webp)
+  // Photo options
+  photo[optimize]:boolean=false // optimization(convert to webp)
+  photo[preview]:boolean=false // generate preview(convert to webp)
   photo[previewSize]:number=30-99 // preview size(percent of original image)
+  photo[keepOriginalFilename]:boolean=false // keep original filename
+
+  // Video options
+  video[keepOriginalFilename]:boolean=false // keep original filename
+
+  // Default options (for other file types)
+  default[keepOriginalFilename]:boolean=false // keep original filename
+
+  // Global option (applies to all file types)
+  keepOriginalFilename:boolean=false // keep original filename for all file types
 ```
 
-Files field name will be set as filename on server
+**Note:** By default, uploaded files are saved with a hashed filename (SHA-256 based). Set `keepOriginalFilename=true` to preserve the original filename.
 
 If collection doesn`t exists, it will be created.
 

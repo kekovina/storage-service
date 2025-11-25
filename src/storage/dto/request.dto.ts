@@ -49,11 +49,44 @@ export class UploadPhotoOptionsDto {
     maximum: 99,
   })
   previewSize?: number;
+
+  @Type(() => Boolean)
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: false,
+    example: true,
+    description: 'Keep original filename',
+    required: false,
+  })
+  keepOriginalFilename?: boolean;
 }
 
-export class UploadVideoOptionsDto {}
+export class UploadVideoOptionsDto {
+  @Type(() => Boolean)
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: false,
+    example: true,
+    description: 'Keep original filename',
+    required: false,
+  })
+  keepOriginalFilename?: boolean;
+}
 
-export class UploadDefaultOptionsDto {}
+export class UploadDefaultOptionsDto {
+  @Type(() => Boolean)
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: false,
+    example: true,
+    description: 'Keep original filename',
+    required: false,
+  })
+  keepOriginalFilename?: boolean;
+}
 
 export class UploadFileOptionsDto {
   @ValidateNested()
@@ -70,6 +103,17 @@ export class UploadFileOptionsDto {
   @Type(() => UploadDefaultOptionsDto)
   @IsOptional()
   default?: UploadDefaultOptionsDto;
+
+  @Type(() => Boolean)
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: false,
+    example: true,
+    description: 'Keep original filename for all file types',
+    required: false,
+  })
+  keepOriginalFilename?: boolean;
 }
 
 export class GetCollectionFilesParamsDto {
