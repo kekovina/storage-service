@@ -1,6 +1,6 @@
 # Storage Service
 
-![NestJS](https://img.shields.io/badge/nestjs-%23000000.svg?style=for-the-badge&logo=nestjs&logoColor=ea2864) ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white) 
+![NestJS](https://img.shields.io/badge/nestjs-%23000000.svg?style=for-the-badge&logo=nestjs&logoColor=ea2864) ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 
 This server allows you to create and manage image collections using the rest API.
 
@@ -43,6 +43,7 @@ static-server:
 | `image/gif`       |
 | `image/bmp`       |
 | `image/tiff`      |
+| `image/svg+xml`   |
 | `application/pdf` |
 | `video/mp4`       |
 | `video/webm`      |
@@ -53,7 +54,7 @@ static-server:
 | env | description | required | default | example |
 | :-- | :-- | :-- | :-- | :-- |
 | `BEARER_TOKENS` | array of authorized tokens | + |  | ["token1", "token2"] |
-| `ACCEPTED_MIME_TYPES` | accepted mime types |  | `image/png` ,`image/jpeg` , `image/webp` , `image/tiff`, `image/gif`, `image/bmp` , `application/pdf` , `video/mp4` ,`video/webm` ,`video/ogg` |  |
+| `ACCEPTED_MIME_TYPES` | accepted mime types |  | `image/png` ,`image/jpeg` , `image/webp`, `image/svg+xml` , `image/tiff`, `image/gif`, `image/bmp` , `application/pdf` , `video/mp4` ,`video/webm` ,`video/ogg` |  |
 | `APP_PORT` | server port |  | 3000 | 5050 |
 | `SWAGGER_ENABLED` | enabling swagger docs |  | 0 | 1 |
 | `MAX_FILE_SIZE` | max file size in bytes |  | 5242880(5MB) | 5242880 |
@@ -68,8 +69,8 @@ static-server:
   Authorization: Bearer {token}
 
   // Photo options
-  photo[optimize]:boolean=false // optimization(convert to webp)
-  photo[preview]:boolean=false // generate preview(convert to webp)
+  photo[optimize]:boolean=false // optimization(convert to webp) - NOT supported for SVG
+  photo[preview]:boolean=false // generate preview(convert to webp) - NOT supported for SVG
   photo[previewSize]:number=30-99 // preview size(percent of original image)
   photo[keepOriginalFilename]:boolean=false // keep original filename
 
@@ -83,7 +84,9 @@ static-server:
   keepOriginalFilename:boolean=false // keep original filename for all file types
 ```
 
-**Note:** By default, uploaded files are saved with a hashed filename (SHA-256 based). Set `keepOriginalFilename=true` to preserve the original filename.
+**Notes:**
+- By default, uploaded files are saved with a hashed filename (SHA-256 based). Set `keepOriginalFilename=true` to preserve the original filename.
+- **SVG files cannot be optimized or converted to WebP.** Attempting to use `photo[optimize]=true` or `photo[preview]=true` with SVG files will result in an error with code `SVG_OPTIMIZATION_NOT_SUPPORTED`.
 
 If collection doesn`t exists, it will be created.
 

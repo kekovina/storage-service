@@ -9,6 +9,28 @@ export class PhotoPrepareHandler implements FileHandler {
   constructor(private readonly imageOptimizerService: ImageOptimizerService) {}
   async process(file: Express.Multer.File, options?: PhotoHandlerOptions) {
     try {
+      const isSvg = file.mimetype === 'image/svg+xml';
+
+      if (isSvg && options?.optimize) {
+        return {
+          isPrepared: false as const,
+          error: {
+            code: ERROR_CODES.SVG_OPTIMIZATION_NOT_SUPPORTED,
+            message: 'SVG optimization to WebP is not supported',
+          },
+        };
+      }
+
+      if (isSvg && options?.preview) {
+        return {
+          isPrepared: false as const,
+          error: {
+            code: ERROR_CODES.SVG_OPTIMIZATION_NOT_SUPPORTED,
+            message: 'SVG preview generation is not supported',
+          },
+        };
+      }
+
       const processedBuffer = file.buffer;
       const result = {
         file: {
