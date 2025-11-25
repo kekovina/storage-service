@@ -1,5 +1,11 @@
 # @kekovina/storage-service
 
+## 0.1.8
+
+### Patch Changes
+
+- b67dd73: feat: gif support + optimzation feat: throw error on svg optimization
+
 ## 0.1.7
 
 ### Patch Changes
