@@ -75,6 +75,7 @@ static-server:
   photo[keepOriginalFilename]:boolean=false // keep original filename
 
   // Video options
+  video[optimize]:boolean=false // optimization(convert GIF to WebM)
   video[keepOriginalFilename]:boolean=false // keep original filename
 
   // Default options (for other file types)
@@ -87,6 +88,7 @@ static-server:
 **Notes:**
 - By default, uploaded files are saved with a hashed filename (SHA-256 based). Set `keepOriginalFilename=true` to preserve the original filename.
 - **SVG files cannot be optimized or converted to WebP.** Attempting to use `photo[optimize]=true` or `photo[preview]=true` with SVG files will result in an error with code `SVG_OPTIMIZATION_NOT_SUPPORTED`.
+- **GIF files can be optimized to WebM format** using `video[optimize]=true`. This uses FFmpeg to convert animated GIFs to more efficient WebM videos.
 
 If collection doesn`t exists, it will be created.
 
@@ -126,5 +128,5 @@ If collection doesn`t exists, it will be created.
 
 ## Roadmap
 
-- Video optimization
+- ✅ Video optimization (GIF to WebM conversion)
 - Jest tests

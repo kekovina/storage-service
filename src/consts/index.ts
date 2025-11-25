@@ -30,6 +30,8 @@ export const supportedMimeTypes = [
   'image/gif',
   'image/bmp',
   'image/tiff',
+  'image/gif',
+  'image/svg+xml',
   'image/webp',
   'video/mp4',
   'video/webm',

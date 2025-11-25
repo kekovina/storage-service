@@ -13,14 +13,43 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export class UploadPhotoStorageDto {
+export class UploadDefaultOptionsDto {
+  @Type(() => Boolean)
+  @IsOptional()
+  @IsBoolean()
   @ApiProperty({
-    type: Blob,
-    required: true,
-    description: 'File to upload',
+    default: false,
+    example: true,
+    description: 'Keep original filename',
+    required: false,
   })
-  file: File;
+  keepOriginalFilename?: boolean;
 }
+
+export class UploadVideoOptionsDto {
+  @Type(() => Boolean)
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: false,
+    example: true,
+    description: 'Optimize video (convert GIF to WebM)',
+    required: false,
+  })
+  optimize?: boolean;
+
+  @Type(() => Boolean)
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: false,
+    example: true,
+    description: 'Keep original filename',
+    required: false,
+  })
+  keepOriginalFilename?: boolean;
+}
+
 export class UploadPhotoOptionsDto {
   @Type(() => Boolean)
   @IsOptional()
@@ -62,28 +91,73 @@ export class UploadPhotoOptionsDto {
   keepOriginalFilename?: boolean;
 }
 
-export class UploadVideoOptionsDto {
-  @Type(() => Boolean)
-  @IsOptional()
-  @IsBoolean()
+export class UploadPhotoStorageDto {
   @ApiProperty({
-    default: false,
-    example: true,
-    description: 'Keep original filename',
-    required: false,
+    type: 'string',
+    format: 'binary',
+    required: true,
+    description: 'File to upload',
   })
-  keepOriginalFilename?: boolean;
-}
+  file: Express.Multer.File;
 
-export class UploadDefaultOptionsDto {
-  @Type(() => Boolean)
-  @IsOptional()
-  @IsBoolean()
   @ApiProperty({
-    default: false,
-    example: true,
-    description: 'Keep original filename',
+    type: 'object',
+    description: 'Photo options',
+    properties: {
+      optimize: { type: 'boolean', default: false, description: 'Convert to webp' },
+      preview: { type: 'boolean', default: false, description: 'Create preview' },
+      previewSize: {
+        type: 'number',
+        default: 99,
+        minimum: 30,
+        maximum: 99,
+        description: 'Preview size',
+      },
+      keepOriginalFilename: {
+        type: 'boolean',
+        default: false,
+        description: 'Keep original filename',
+      },
+    },
+  })
+  photo?: UploadPhotoOptionsDto;
+
+  @ApiProperty({
+    type: 'object',
+    description: 'Video options',
+    properties: {
+      optimize: {
+        type: 'boolean',
+        default: false,
+        description: 'Optimize video (convert GIF to WebM)',
+      },
+      keepOriginalFilename: {
+        type: 'boolean',
+        default: false,
+        description: 'Keep original filename',
+      },
+    },
+  })
+  video?: UploadVideoOptionsDto;
+
+  @ApiProperty({
+    type: 'object',
+    description: 'Default options (for other file types)',
+    properties: {
+      keepOriginalFilename: {
+        type: 'boolean',
+        default: false,
+        description: 'Keep original filename',
+      },
+    },
+  })
+  default?: UploadDefaultOptionsDto;
+
+  @ApiProperty({
+    type: 'boolean',
     required: false,
+    default: false,
+    description: 'Keep original filename for all file types',
   })
   keepOriginalFilename?: boolean;
 }
