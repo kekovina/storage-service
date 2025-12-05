@@ -1,5 +1,11 @@
 # @kekovina/storage-service
 
+## 0.1.9
+
+### Patch Changes
+
+- fc3f462: urlencoded filename support
+
 ## 0.1.8
 
 ### Patch Changes
