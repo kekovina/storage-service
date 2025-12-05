@@ -1,5 +1,11 @@
 # @kekovina/storage-service
 
+## 0.1.10
+
+### Patch Changes
+
+- ccb6e15: fix decodeURI in filename upload
+
 ## 0.1.9
 
 ### Patch Changes
