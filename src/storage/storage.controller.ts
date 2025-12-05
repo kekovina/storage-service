@@ -125,7 +125,8 @@ export class StorageController {
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection/:filename')
   getFile(@Res() res: Response, @Param() { collection, filename }: GetFileParamsDto) {
-    const file = this.storageService.getFile(collection, filename);
+    const preparedFilename = decodeURIComponent(filename);
+    const file = this.storageService.getFile(collection, preparedFilename);
     return res.header('cache-control', 'public, max-age=31536000').sendFile(file);
   }
 
