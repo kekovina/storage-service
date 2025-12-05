@@ -223,9 +223,6 @@ export class GetFileParamsDto {
   })
   @IsNotEmpty({ message: 'File name is required' })
   @IsString()
-  @Matches(/^[A-z0-9\-]+\.[A-z0-9]+$/, {
-    message: 'File name is invalid',
-  })
   filename: string;
 }
 
