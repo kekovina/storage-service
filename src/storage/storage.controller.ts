@@ -6,13 +6,21 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Res,
   UploadedFile,
   UseFilters,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { BaseErrorResponseDto } from './types';
 import { BearerAuthGuard } from '@/auth/bearer-auth-guard.guard';
 import { HttpExceptionFilter } from '@/http-exception.filter';
@@ -36,6 +44,9 @@ import {
 } from './dto/response.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+
+// revalidate via ETag/Last-Modified so a re-upload under the same name shows up at once
+const FILE_CACHE_CONTROL = 'public, no-cache';
 
 @ApiResponse({
   status: HttpStatus.UNAUTHORIZED,
@@ -113,6 +124,24 @@ export class StorageController {
   }
 
   @ApiOperation({ summary: 'Get file' })
+  @ApiQuery({
+    name: 'width',
+    required: false,
+    type: Number,
+    description: 'Resize by width (ignored if height is set too)',
+  })
+  @ApiQuery({
+    name: 'height',
+    required: false,
+    type: Number,
+    description: 'Resize by height (ignored if width is set too)',
+  })
+  @ApiQuery({
+    name: 'quality',
+    required: false,
+    type: Number,
+    description: 'WebP quality 1-100, default 80',
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'File',
@@ -124,10 +153,14 @@ export class StorageController {
   })
   @UseFilters(HttpExceptionFilter)
   @Get('/:collection/:filename')
-  getFile(@Res() res: Response, @Param() { collection, filename }: GetFileParamsDto) {
+  async getFile(
+    @Res() res: Response,
+    @Param() { collection, filename }: GetFileParamsDto,
+    @Query() query: Record<string, unknown>
+  ) {
     const preparedFilename = decodeURIComponent(filename);
-    const file = this.storageService.getFile(collection, preparedFilename);
-    return res.header('cache-control', 'public, max-age=31536000').sendFile(file);
+    const file = await this.storageService.getFileByQuery(collection, preparedFilename, query);
+    return res.header('cache-control', FILE_CACHE_CONTROL).sendFile(file);
   }
 
   @ApiOperation({ summary: 'Get preview file' })
@@ -144,7 +177,7 @@ export class StorageController {
   @Get('/:collection/:filename/preview')
   getPreview(@Param() { collection, filename }: GetPreviewFileParamsDto, @Res() res: Response) {
     const file = this.storageService.getFile(collection, filename);
-    return res.header('cache-control', 'public, max-age=31536000').sendFile(file);
+    return res.header('cache-control', FILE_CACHE_CONTROL).sendFile(file);
   }
 
   @ApiOperation({ summary: 'Download file' })
@@ -180,8 +213,8 @@ export class StorageController {
   @UseFilters(HttpExceptionFilter)
   @UseGuards(BearerAuthGuard)
   @Delete('/:collection/:filename')
-  remove(@Param() { collection, filename }: GetDeleteFileParamsDto, @Res() res: Response) {
-    this.storageService.dropFile(collection, filename);
+  async remove(@Param() { collection, filename }: GetDeleteFileParamsDto, @Res() res: Response) {
+    await this.storageService.dropFile(collection, filename);
     return res.status(HttpStatus.NO_CONTENT).send({ status: true });
   }
 
@@ -200,8 +233,8 @@ export class StorageController {
   @UseFilters(HttpExceptionFilter)
   @UseGuards(BearerAuthGuard)
   @Delete('/:collection')
-  dropCollection(@Param() { collection }: DropCollectionParamsDto, @Res() res: Response) {
-    this.storageService.dropCollection(collection);
+  async dropCollection(@Param() { collection }: DropCollectionParamsDto, @Res() res: Response) {
+    await this.storageService.dropCollection(collection);
     return res.status(HttpStatus.NO_CONTENT).send({ status: true });
   }
 }
