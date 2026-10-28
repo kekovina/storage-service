@@ -108,9 +108,10 @@ Optional query params (images `jpg`, `png`, `webp`, `tiff`; other files are serv
 | :-- | :-- |
 | `width` | resize by width, keeps aspect ratio |
 | `height` | resize by height, keeps aspect ratio |
-| `quality` | WebP quality `1-100`, default `80` |
+| `quality` | WebP quality `1-100` (rounded to 10), default `80` |
 
-- Size is clamped to `IMAGE_MIN_SIZE`..`IMAGE_MAX_SIZE`; images are never enlarged.
+- Size is rounded up to a multiple of 32 px and clamped to `IMAGE_MIN_SIZE`..`IMAGE_MAX_SIZE`; images are never enlarged.
+- `quality` is rounded to the nearest 10 (10..100). Rounding keeps the number of cached variants per image bounded.
 - `width` and `height` together are not supported: the original file is returned.
 - Invalid values are ignored; without valid params the original file is returned.
 - The result is always WebP and cached on disk in `CACHE_FOLDER_PATH`. The cache is refreshed when the original is re-uploaded and dropped together with the file.

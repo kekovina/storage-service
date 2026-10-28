@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
-import { ImageParams, normalizeImageParams } from './image-params';
+import { ImageLimits, ImageParams, normalizeImageParams } from './image-params';
 
 // GIF/SVG are served as is
 const PROCESSABLE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff']);
@@ -14,7 +14,7 @@ export class ImageVariantsService {
   private readonly logger = new Logger(ImageVariantsService.name);
   private readonly inFlight = new Map<string, Promise<void>>();
   private readonly cacheRoot: string;
-  private readonly limits: { minSize: number; maxSize: number };
+  private readonly limits: ImageLimits;
 
   constructor(config: ConfigService) {
     this.cacheRoot = path.resolve(config.get<string>('CACHE_FOLDER_PATH') as string);

@@ -5,7 +5,7 @@ import { StorageService } from './storage.service';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { memoryStorage } from 'multer';
-import { ImageVariantsService } from './image-optimizer/image-variants.service';
+import { ImageOptimizerModule } from './image-optimizer/image-optimizer.module';
 
 @Module({
   imports: [
@@ -20,8 +20,9 @@ import { ImageVariantsService } from './image-optimizer/image-variants.service';
       }),
     }),
     UploaderModule,
+    ImageOptimizerModule,
   ],
   controllers: [StorageController],
-  providers: [StorageService, ImageVariantsService],
+  providers: [StorageService],
 })
 export class StorageModule {}

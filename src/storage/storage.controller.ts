@@ -44,9 +44,16 @@ import {
 } from './dto/response.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import path from 'node:path';
 
 // revalidate via ETag/Last-Modified so a re-upload under the same name shows up at once
 const FILE_CACHE_CONTROL = 'public, no-cache';
+
+// `root` keeps dot segments of the storage/cache path (e.g. ~/.cache) from turning into a 404
+const sendStoredFile = (res: Response, file: string) =>
+  res
+    .header('cache-control', FILE_CACHE_CONTROL)
+    .sendFile(path.basename(file), { root: path.dirname(file) });
 
 @ApiResponse({
   status: HttpStatus.UNAUTHORIZED,
@@ -160,7 +167,7 @@ export class StorageController {
   ) {
     const preparedFilename = decodeURIComponent(filename);
     const file = await this.storageService.getFileByQuery(collection, preparedFilename, query);
-    return res.header('cache-control', FILE_CACHE_CONTROL).sendFile(file);
+    return sendStoredFile(res, file);
   }
 
   @ApiOperation({ summary: 'Get preview file' })
@@ -177,7 +184,7 @@ export class StorageController {
   @Get('/:collection/:filename/preview')
   getPreview(@Param() { collection, filename }: GetPreviewFileParamsDto, @Res() res: Response) {
     const file = this.storageService.getFile(collection, filename);
-    return res.header('cache-control', FILE_CACHE_CONTROL).sendFile(file);
+    return sendStoredFile(res, file);
   }
 
   @ApiOperation({ summary: 'Download file' })

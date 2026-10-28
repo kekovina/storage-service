@@ -11,7 +11,7 @@ const validationSchema = Joi.object({
 
   MAX_FILE_SIZE: Joi.number().default(5 * 1024 * 1024),
 
-  IMAGE_MIN_SIZE: Joi.number().integer().min(1).default(16),
+  IMAGE_MIN_SIZE: Joi.number().integer().min(1).max(Joi.ref('IMAGE_MAX_SIZE')).default(16),
   IMAGE_MAX_SIZE: Joi.number().integer().min(1).default(2048),
   CACHE_FOLDER_PATH: Joi.string().default(CACHE_FOLDER_PATH),
 
