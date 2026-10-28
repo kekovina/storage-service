@@ -33,6 +33,6 @@ RUN apk add --no-cache \
 RUN npm pkg set scripts.prepare="echo 'skip prepare'"
 RUN npm install --production
 
-VOLUME [ "/app/uploads" ]
+VOLUME [ "/app/uploads", "/app/cache" ]
 
 CMD ["node", "./dist/main.js"]
