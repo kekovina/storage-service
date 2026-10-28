@@ -1,5 +1,11 @@
 # @kekovina/storage-service
 
+## 0.2.0
+
+### Minor Changes
+
+- e795cb5: feat: image optimization via query params (width, height, quality) with disk cache
+
 ## 0.1.10
 
 ### Patch Changes

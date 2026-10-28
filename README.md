@@ -10,7 +10,7 @@ This server allows you to create and manage image collections using the rest API
 
 ```bash
   docker pull kekovina/storage-service:lasets
-  docker run -e "BEARER_TOKENS=<TOKENS>" -e ACCEPTED_MIME_TYPES=application/pdf,image/jpeg -v /path/to/data:/app/uploads -d kekovina/storage-service:latest
+  docker run -e "BEARER_TOKENS=<TOKENS>" -e ACCEPTED_MIME_TYPES=application/pdf,image/jpeg -v /path/to/data:/app/uploads -v /path/to/cache:/app/cache -d kekovina/storage-service:latest
 ```
 
 ### Docker compose
@@ -31,6 +31,7 @@ static-server:
     - APP_PORT=${APP_PORT}
   volumes:
     - "${path-to-or-anon-volume}:/data/uploads"
+    - "${path-to-cache-or-anon-volume}:/app/cache"
 ```
 
 #### Supported MIME-types
@@ -58,6 +59,9 @@ static-server:
 | `APP_PORT` | server port |  | 3000 | 5050 |
 | `SWAGGER_ENABLED` | enabling swagger docs |  | 0 | 1 |
 | `MAX_FILE_SIZE` | max file size in bytes |  | 5242880(5MB) | 5242880 |
+| `IMAGE_MIN_SIZE` | min width/height (px) for query resize, smaller values are raised to it |  | 16 | 32 |
+| `IMAGE_MAX_SIZE` | max width/height (px) for query resize, bigger values are lowered to it |  | 2048 | 1600 |
+| `CACHE_FOLDER_PATH` | folder for cached optimized images (mount a volume here) |  | `<cwd>/cache` (`/app/cache` in Docker) | /data/cache |
 
 ## API Reference
 
@@ -95,8 +99,23 @@ If collection doesn`t exists, it will be created.
 #### Get item
 
 ```http
-  GET /{collection}/{filename}
+  GET /{collection}/{filename}?width=300&quality=80
 ```
+
+Optional query params (images `jpg`, `png`, `webp`, `tiff`; other files are served as is):
+
+| param | description |
+| :-- | :-- |
+| `width` | resize by width, keeps aspect ratio |
+| `height` | resize by height, keeps aspect ratio |
+| `quality` | WebP quality `1-100` (rounded to 10), default `80` |
+
+- Size is rounded up to a multiple of 32 px and clamped to `IMAGE_MIN_SIZE`..`IMAGE_MAX_SIZE`; images are never enlarged.
+- `quality` is rounded to the nearest 10 (10..100). Rounding keeps the number of cached variants per image bounded.
+- `width` and `height` together are not supported: the original file is returned.
+- Invalid values are ignored; without valid params the original file is returned.
+- The result is always WebP and cached on disk in `CACHE_FOLDER_PATH`. The cache is refreshed when the original is re-uploaded and dropped together with the file.
+- Responses use `Cache-Control: public, no-cache` with `ETag`/`Last-Modified`, so browsers revalidate (304) and a re-uploaded file shows up immediately.
 
 #### Get items from collection
 

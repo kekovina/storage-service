@@ -10,10 +10,14 @@ import { parseMIMEToContentType } from '@/libs/parseMIMEToContentType';
 import { UploadFileOptionsDto } from './dto/request.dto';
 import { mkdir } from 'node:fs/promises';
 import { getAcceptedMIMETypes } from './libs/getAcceptedMIMETypes';
+import { ImageVariantsService } from './image-optimizer/image-variants.service';
 
 @Injectable()
 export class StorageService {
-  constructor(private readonly uploader: UploaderService) {}
+  constructor(
+    private readonly uploader: UploaderService,
+    private readonly imageVariants: ImageVariantsService
+  ) {}
   async upload(collection: string, file: Express.Multer.File, options?: UploadFileOptionsDto) {
     const collectionPath = path.join(FOLDER_PATH, collection);
     const { mimetype } = file;
@@ -97,7 +101,14 @@ export class StorageService {
     }
   }
 
-  dropFile(collection: string, filename: string) {
+  /** Original file path, or an optimized variant when query params ask for it. */
+  async getFileByQuery(collection: string, filename: string, query: Record<string, unknown>) {
+    const file = this.getFile(collection, filename);
+    const variant = await this.imageVariants.getVariant(file, collection, filename, query);
+    return variant ?? file;
+  }
+
+  async dropFile(collection: string, filename: string) {
     if (!fs.existsSync(path.join(FOLDER_PATH, collection, filename)))
       throw new HttpException(
         {
@@ -107,7 +118,7 @@ export class StorageService {
         HttpStatus.NOT_FOUND
       );
     try {
-      return fs.unlinkSync(path.join(FOLDER_PATH, collection, filename));
+      fs.unlinkSync(path.join(FOLDER_PATH, collection, filename));
     } catch (e) {
       throw new HttpException(
         {
@@ -117,9 +128,10 @@ export class StorageService {
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
+    await this.imageVariants.dropFile(collection, filename);
   }
 
-  dropCollection(collection: string) {
+  async dropCollection(collection: string) {
     if (!fs.existsSync(path.join(FOLDER_PATH, collection)))
       throw new HttpException(
         {
@@ -129,7 +141,7 @@ export class StorageService {
         HttpStatus.NOT_FOUND
       );
     try {
-      return fs.unlinkSync(path.join(FOLDER_PATH, collection));
+      fs.unlinkSync(path.join(FOLDER_PATH, collection));
     } catch (e) {
       throw new HttpException(
         {
@@ -139,6 +151,7 @@ export class StorageService {
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
+    await this.imageVariants.dropCollection(collection);
   }
 
   async getAllCollections() {
